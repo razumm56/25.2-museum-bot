@@ -1,4 +1,4 @@
 import asyncio
-from api.v1.bot import main
+from tgbot.bot import main
 
 asyncio.run(main())

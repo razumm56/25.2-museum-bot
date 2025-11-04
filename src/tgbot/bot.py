@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 from loguru import logger
 from dotenv import load_dotenv
 
-from api.v1.handlers import main_router
+from tgbot.handlers import main_router
 
 load_dotenv()
 
