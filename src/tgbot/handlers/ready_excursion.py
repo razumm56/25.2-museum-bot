@@ -52,7 +52,7 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     audio = FSInputFile(await tts.generate_voice_message(description))
     format_id = await state.get_value('format_id')
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, FSInputFile('temp/exhibit1.jpg'))
+        await bot.send_photo(q.from_user.id, exhibits[1])
     await bot.send_voice(q.from_user.id, audio)
     await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
@@ -63,7 +63,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.message.delete()
     exhibit_id = await state.get_value('exhibit_id')
     if exhibit_id == 5:
-        await finish_excursion(q)
+        await finish_excursion(q, bot)
         return
     exhibit_id += 1
     await state.update_data(exhibit_id=exhibit_id)
