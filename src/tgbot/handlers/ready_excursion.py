@@ -17,8 +17,9 @@ llm = LLM()
 tts = TTS()
 
 @router.callback_query(F.data == 'ready_excursion')
-async def start(q: CallbackQuery, state: FSMContext):
+async def start(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
+    await q.message.delete()
     await state.set_state(Startup.format)
     await bot.send_message(q.from_user.id,
                            'Если любой момент захочешь выйти или начать заново — нажми кнопку внизу👇',
@@ -34,6 +35,7 @@ async def start(q: CallbackQuery, state: FSMContext):
 @router.callback_query(Startup.format, F.data.regexp(r'^format \d$'))
 async def set_format(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
+    await q.message.delete()
     format_id = int(q.data.split()[-1])
     await state.update_data(format_id=format_id)
     await state.update_data(route='personal', exhibit_id=1)
@@ -58,6 +60,7 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
 @router.callback_query(Excursion.exhibit, F.data == 'next exhibit')
 async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
+    await q.message.delete()
     exhibit_id = await state.get_value('exhibit_id')
     if exhibit_id == 5:
         await finish_excursion(q)
