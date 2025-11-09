@@ -8,6 +8,7 @@ dependencies = [
     "aiogram>=3.22.0",
     "dotenv>=0.9.9",
     "loguru>=0.7.3",
+    "pandas>=2.3.3",
     "uvicorn>=0.38.0",
 ]
 
