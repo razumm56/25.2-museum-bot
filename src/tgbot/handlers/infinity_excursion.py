@@ -49,12 +49,10 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     await state.set_state(Excursion.exhibit)
     message = await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
     description = await llm.generate_description(exhibit_id=1)
-    audio = FSInputFile(await tts.generate_voice_message(description))
     format_id = await state.get_value('format_id')
     await message.delete()
     if format_id == 1:
         await bot.send_photo(q.from_user.id, exhibits[1])
-    await bot.send_voice(q.from_user.id, audio)
     await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
 
@@ -69,12 +67,10 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     await state.update_data(exhibit_id=exhibit_id)
     message = await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
     description = await llm.generate_description(exhibit_id=exhibit_id)
-    audio = FSInputFile(await tts.generate_voice_message(description))
     format_id = await state.get_value('format_id')
     await message.delete()
     if format_id == 1:
         await bot.send_photo(q.from_user.id, exhibits[exhibit_id])
-    await bot.send_voice(q.from_user.id, audio)
     await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
 
