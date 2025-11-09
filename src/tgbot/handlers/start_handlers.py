@@ -1,5 +1,5 @@
 from aiogram import F, Router, Bot, types
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -23,7 +23,8 @@ async def start(message: Message, state: FSMContext):
         "👋 Привет! Добро пожаловать в бот-гид по музеям!\n\n"
         "Я создан, чтобы помочь тебе познакомиться с искусством и найти то, что действительно затронет твою душу. "
         "Вместо скучных экскурсий я предлагаю персонализированные маршруты, которые соответствуют твоим интересам.\n\n",
-        parse_mode=ParseMode.MARKDOWN
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=ReplyKeyboardRemove()
     )
     
     await message.answer(
