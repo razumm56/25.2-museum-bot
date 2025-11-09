@@ -12,11 +12,12 @@ from tgbot import keyboards
 from tgbot.handlers.finish_handlers import finish_excursion
 
 
-router = Router()
+pers_route = Router()
 llm = LLM()
 tts = TTS()
 
-@router.callback_query(F.data == 'personal_excursion')
+
+@pers_route.callback_query(F.data == 'personal_excursion')
 async def start(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
@@ -36,7 +37,7 @@ async def start(q: CallbackQuery, state: FSMContext, bot: Bot):
     )
 
 
-@router.message(Startup.style)
+@pers_route.message(Startup.style)
 async def set_style(m: Message, state: FSMContext):
     await state.update_data(style=m.text)
     await state.set_state(Startup.format)
@@ -47,7 +48,7 @@ async def set_style(m: Message, state: FSMContext):
                    reply_markup=keyboards.formats_keyboard)
 
 
-@router.callback_query(Startup.format, F.data.regexp(r'^format \d$'))
+@pers_route.callback_query(Startup.format, F.data.regexp(r'^format \d$'))
 async def set_format(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
@@ -64,7 +65,7 @@ async def set_format(q: CallbackQuery, state: FSMContext, bot: Bot):
                                            '*Вы готовы отправиться?*',
                            reply_markup=keyboards.user_ready, parse_mode=ParseMode.MARKDOWN)
 
-@router.callback_query(Startup.format, F.data == 'user ready')
+@pers_route.callback_query(Startup.format, F.data == 'user ready')
 async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
@@ -74,11 +75,11 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     format_id = await state.get_value('format_id')
     await message.delete()
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, 'https://fotohosting.pro/i/exhibit1.hpzyl')
+        await bot.send_photo(q.from_user.id, exhibits[1])
     await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
 
-@router.callback_query(Excursion.exhibit, F.data == 'next exhibit')
+@pers_route.callback_query(Excursion.exhibit, F.data == 'next exhibit')
 async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
@@ -97,7 +98,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
 
-@router.message(Excursion.exhibit)
+@pers_route.message(Excursion.exhibit)
 async def exhibit(m: Message, state: FSMContext):
     await m.answer('Обрабатываю ответ на вопрос... Подождите немного!⏳')
     answer = await llm.generate_answer(m.text)
