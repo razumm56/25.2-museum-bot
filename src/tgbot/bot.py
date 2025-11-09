@@ -1,12 +1,20 @@
 import asyncio
+import os
 
+from aiogram import Bot, Dispatcher
 from loguru import logger
+from dotenv import load_dotenv
 
 from tgbot.handlers import main_router
-from loader import bot, dp
+
+load_dotenv()
 
 
 async def main():
+
+    bot = Bot(token=os.getenv("TELEGRAM_TOKEN"))
+    dp = Dispatcher()
+
     # Регистрация routers
     dp.include_router(main_router)
 

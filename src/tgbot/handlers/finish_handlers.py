@@ -6,12 +6,11 @@ from aiogram.filters import Command
 from loguru import logger
 
 from tgbot.keyboards import keyboard_start_after_finish_excursion
-from loader import bot
 
 
 finish_router = Router()
 
-async def finish_excursion(message: types.Message | types.CallbackQuery):
+async def finish_excursion(message: types.Message | types.CallbackQuery, bot: Bot):
     user_id = str(message.from_user.id)
     username = message.from_user.username
     
@@ -24,6 +23,6 @@ async def finish_excursion(message: types.Message | types.CallbackQuery):
     )
 
 @finish_router.message(F.text == "Завершить экскурсию")
-async def process_finish_excursion_command(message: Message, state: FSMContext):
+async def process_finish_excursion_command(message: Message, state: FSMContext, bot: Bot):
     await state.clear()
-    await finish_excursion(message)
+    await finish_excursion(message, bot)
