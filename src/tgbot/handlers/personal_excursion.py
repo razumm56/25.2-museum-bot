@@ -8,7 +8,7 @@ from models.llm import LLM
 from models.tts import TTS
 from tgbot.states.personal_excursion_states import PersonalExcursionStartup as Startup
 from tgbot.states.personal_excursion_states import PersonalExcursionExcursion as Excursion
-from tgbot.utils import generate_map
+from tgbot.utils import generate_map, exhibits
 from tgbot import keyboards
 from tgbot.handlers.finish_handlers import finish_excursion
 
@@ -57,8 +57,7 @@ async def set_format(q: CallbackQuery, state: FSMContext):
                                            '📍 На карте они отмечены точками, а на полу — наклейками с такими же индексами,'
                                            'чтобы вы легко ориентировались в пространстве выставки',
                            parse_mode=ParseMode.MARKDOWN)
-    photo = FSInputFile(await generate_map('personal'))
-    await bot.send_photo(q.from_user.id, photo)
+    await bot.send_photo(q.from_user.id, 'https://fotohosting.pro/i/route-map.hpUXN')
     await state.update_data(route='personal', exhibit_id=1)
     await bot.send_message(q.from_user.id, '*🎧 Экскурсия содержит аудио*\n\n'
                                            '*Вы готовы отправиться?*',
@@ -84,6 +83,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext):
     exhibit_id = await state.get_value('exhibit_id')
     if exhibit_id == 5:
         await finish_excursion(q)
+        return
     exhibit_id += 1
     await state.update_data(exhibit_id=exhibit_id)
     await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
@@ -91,7 +91,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext):
     audio = FSInputFile(await tts.generate_voice_message(description))
     format_id = await state.get_value('format_id')
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, FSInputFile(f'temp/exhibit{exhibit_id}.jpg'))
+        await bot.send_photo(q.from_user.id, exhibits[exhibit_id])
     await bot.send_voice(q.from_user.id, audio)
     await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 

@@ -9,6 +9,7 @@ from models.tts import TTS
 from tgbot.states.infinity_excursion_states import InfinityExcursionStartup as Startup
 from tgbot.states.infinity_excursion_states import InfinityExcursionExcursion as Excursion
 from tgbot import keyboards
+from tgbot.utils import exhibits
 
 
 router = Router()
@@ -67,7 +68,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext):
     audio = FSInputFile(await tts.generate_voice_message(description))
     format_id = await state.get_value('format_id')
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, FSInputFile(f'temp/exhibit{exhibit_id}.jpg'))
+        await bot.send_photo(q.from_user.id, exhibits[exhibit_id])
     await bot.send_voice(q.from_user.id, audio)
     await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
