@@ -11,16 +11,16 @@ services:
       - ai_museum_net
 
   postgres:
-    image: postgres:18.0
+    image: pgvector/pgvector:pg18-trixie
     container_name: postgres_container  
     environment:
       POSTGRES_PASSWORD: 12345678
       POSTGRES_USER: AiMuseumDB
       PGDATA: /var/lib/postgresql/data/AiMuseum
     volumes:
-      - postgre:/var/lib/postgresql/data
+      - postgre:/var/lib/postgresql
     ports:
-      - "5432:5432"
+      - "5433:5432"
     networks:
       - ai_museum_net
 
