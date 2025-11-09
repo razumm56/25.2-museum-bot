@@ -1,11 +1,27 @@
 import asyncio
 
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph.state import Command
+from agent.guide import guide_app, guide_graph, GuideState
+from loguru import logger
+
+
 class LLM:
+    def __init__(self):
+        self.config = {"configurable": {"thread_id": "1"}}
+        self.state: GuideState = {}
 
     async def generate_description(self, exhibit_id: int):
-        await asyncio.sleep(1)
-        return f'Описание экспоната №{exhibit_id}.\nОчень крутой экспонат!'
+        guide_state = guide_app.invoke(self.state, config=self.config)
+        guide_state = guide_app.invoke(Command(resume="начало экскурсии"), config=self.config)
+        return guide_state["agent_state"]["messages"][-1].content
 
     async def generate_answer(self, question: str):
-        await asyncio.sleep(1)
-        return f'Отличный вопрос! Правда я без понятия как на него ответить'
+        
+        checkpointer = MemorySaver()
+        guide_app = guide_graph.compile(checkpointer=checkpointer)
+        
+        guide_state = guide_app.invoke(self.state, config=self.config)
+        guide_state = guide_app.invoke(Command(resume=question), config=self.config)
+        logger.info(guide_state)
+        return guide_state["agent_state"]["messages"][-1].content
