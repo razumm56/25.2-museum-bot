@@ -53,3 +53,25 @@ keyboard_excursion_types = InlineKeyboardMarkup(
 keyboard_choose_museums = InlineKeyboardMarkup(inline_keyboard=[[button_choose_test_museum]])
 
 keyboard_after_choose_personal_excursion_type = InlineKeyboardMarkup(inline_keyboard=[[button_back_personal_excursion_type]])
+
+
+formats_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text='С изображением', callback_data='format 1'),
+        InlineKeyboardButton(text='Без изображения', callback_data='format 2'),
+    ]])
+
+user_ready = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text='Да, я готов(а)', callback_data='user ready')
+    ]])
+
+routes_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text='Заготовленный', callback_data='route prepared'),
+    ], [
+        InlineKeyboardButton(text='Экспресс', callback_data='route express'),
+    ], [
+    InlineKeyboardButton(text='Индивидуальная', callback_data='route individual')
+]])
+
+next_exhibit = InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text='Следующий экспонат', callback_data='next exhibit')
+]])
