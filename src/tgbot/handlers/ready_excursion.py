@@ -62,6 +62,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext):
     exhibit_id = await state.get_value('exhibit_id')
     if exhibit_id == 5:
         await finish_excursion(q)
+        return
     exhibit_id += 1
     await state.update_data(exhibit_id=exhibit_id)
     await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
