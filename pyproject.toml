@@ -10,3 +10,15 @@ dependencies = [
     "loguru>=0.7.3",
     "uvicorn>=0.38.0",
 ]
+
+[tool.uv]
+default-groups = ["langchain"]
+
+[dependency-groups]
+langchain = [
+    "langchain>=1.0.3",
+    "langchain-gigachat==0.3.13a1",
+    "langchain-openai>=1.0.1",
+    "langgraph-checkpoint-sqlite>=3.0.0",
+]
+
