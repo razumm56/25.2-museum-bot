@@ -6,7 +6,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
-from sqlalchemy import String, text
+from sqlalchemy import String, text, select, func
 from pgvector.sqlalchemy import Vector
 from dotenv import load_dotenv
 
@@ -15,7 +15,7 @@ load_dotenv()
 
 PG_HOST = os.getenv("PGHOST")
 PG_USER = os.getenv("PGUSER")
-PG_PORT = os.getenv("PGPORT")
+PG_PORT = int(os.getenv("PGPORT"))
 PG_PASSWORD = os.getenv("PGPASSWORD")
 DB_NAME = os.getenv("DBNAME")
 
@@ -49,7 +49,9 @@ def create_db_and_tables() -> None:
             "USING hnsw (embedding vector_cosine_ops)"
         ))
         session.commit()
-    subprocess.run(['pg_restore', '-h', PG_HOST, '-p', PG_PORT, '-U', PG_USER, '--if-exists', '--clean', '--create',
-                    f'--dbanme={DB_NAME}', 'ai_museum.dump'], env=os.environ.copy())
+    count = session.execute(select(func.count(Exhibit.id))).scalar()
+    if count == 0:
+        subprocess.run(['pg_restore', '-h', PG_HOST, '-p', PG_PORT, '-U', PG_USER, '--if-exists', '--clean', '--create',
+                        f'--dbanme={DB_NAME}', 'ai_museum.dump'], env=os.environ.copy())
  
 create_db_and_tables()
