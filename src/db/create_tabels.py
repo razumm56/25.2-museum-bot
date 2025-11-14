@@ -42,7 +42,7 @@ class Exhibit(Base):
     embedding: Mapped[Vector] = mapped_column(Vector(1024))
 
 def create_db_and_tables() -> None:
-	Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
     with Session() as session:
         session.execute(text(
             "CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON exhibits "
