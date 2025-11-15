@@ -49,12 +49,6 @@ def create_db_and_tables() -> None:
             "USING hnsw (embedding vector_cosine_ops)"
         ))
         session.commit()
-    count = session.execute(select(func.count(Exhibit.id))).scalar()
-    if count == 0:
-        path_dump = os.path.join(os.path.dirname(__file__), '..', 'ai_museum.dump')
-        subprocess.run(['pg_restore', '-h', PG_HOST, '-p', PG_PORT, '-U', PG_USER, '--if-exists', '--clean', '--create',
-                        f'-d', DB_NAME, path_dump], env=os.environ.copy())
-
 
 def get_image_url(exhibit_id: int):
     with Session() as session:
