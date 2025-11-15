@@ -36,7 +36,7 @@ button_back_personal_excursion_type = InlineKeyboardButton(
     callback_data='back_personal_excursion_type'
 )
 
-button_choose_test_museum = InlineKeyboardButton(text="Какой-то музей", callback_data='choosed_museum_test')
+button_choose_test_museum = InlineKeyboardButton(text="Тюменский музей", callback_data='choosed_museum_test')
 
 choose_excursion_settings = InlineKeyboardMarkup(inline_keyboard=[[button_excursion_with_photo, button_excursion_without_photo]])
 

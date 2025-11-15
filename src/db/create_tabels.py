@@ -9,13 +9,13 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy import String, text, select, func
 from pgvector.sqlalchemy import Vector
 from dotenv import load_dotenv
-
+from tenacity import retry_if_exception
 
 load_dotenv()
 
 PG_HOST = os.getenv("PGHOST")
 PG_USER = os.getenv("PGUSER")
-PG_PORT = int(os.getenv("PGPORT"))
+PG_PORT = os.getenv("PGPORT")
 PG_PASSWORD = os.getenv("PGPASSWORD")
 DB_NAME = os.getenv("DBNAME")
 
@@ -29,7 +29,7 @@ with engine.connect() as conn:
     conn.commit()
 
 class Base(DeclarativeBase):
-	pass
+    pass
 
 # перенесём сюда модель для наглядности
 class Exhibit(Base):
@@ -51,7 +51,17 @@ def create_db_and_tables() -> None:
         session.commit()
     count = session.execute(select(func.count(Exhibit.id))).scalar()
     if count == 0:
+        path_dump = os.path.join(os.path.dirname(__file__), '..', 'ai_museum.dump')
         subprocess.run(['pg_restore', '-h', PG_HOST, '-p', PG_PORT, '-U', PG_USER, '--if-exists', '--clean', '--create',
-                        f'--dbanme={DB_NAME}', 'ai_museum.dump'], env=os.environ.copy())
+                        f'-d', DB_NAME, path_dump], env=os.environ.copy())
+
+
+def get_image_url(exhibit_id: int):
+    with Session() as session:
+        return session.execute(select(Exhibit.image_url).where(Exhibit.id == exhibit_id)).scalar()
+
+def get_description(exhibit_id: int):
+    with Session() as session:
+        return session.execute(select(Exhibit.description).where(Exhibit.id == exhibit_id)).scalar()
  
 create_db_and_tables()

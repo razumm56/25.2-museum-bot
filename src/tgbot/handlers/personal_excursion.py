@@ -7,9 +7,10 @@ from models.llm import LLM
 from models.tts import TTS
 from tgbot.states.personal_excursion_states import PersonalExcursionStartup as Startup
 from tgbot.states.personal_excursion_states import PersonalExcursionExcursion as Excursion
-from tgbot.utils import generate_map, exhibits
+from tgbot.utils import generate_map
 from tgbot import keyboards
 from tgbot.handlers.finish_handlers import finish_excursion
+from db.create_tabels import get_image_url
 
 
 pers_route = Router()
@@ -75,8 +76,9 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     format_id = await state.get_value('format_id')
     await message.delete()
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, exhibits[1])
-    await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
+        await bot.send_photo(q.from_user.id, get_image_url(1), caption=description[:1024], reply_markup=keyboards.next_exhibit)
+    else:
+        await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
 
 @pers_route.callback_query(Excursion.exhibit, F.data == 'next exhibit')
@@ -94,8 +96,9 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     format_id = await state.get_value('format_id')
     await message.delete()
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, exhibits[exhibit_id])
-    await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
+        await bot.send_photo(q.from_user.id, get_image_url(exhibit_id), caption=description[:1024], reply_markup=keyboards.next_exhibit)
+    else:
+        await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
 
 
 @pers_route.message(Excursion.exhibit)
