@@ -4,7 +4,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import Command
 from loguru import logger
 
-from ai_museum.agent.guide import GuideState, guide_app, guide_graph
+from ai_museum.agents.infinity_excursion_agent.guide import GuideState, guide_app, guide_graph
 from ai_museum.db.create_tabels import get_description
 
 

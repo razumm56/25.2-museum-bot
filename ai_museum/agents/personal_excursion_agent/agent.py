@@ -8,6 +8,8 @@ from langgraph.graph.state import END, Command, RunnableConfig
 from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
+from loguru import logger
+
 from .llm import LLMFactory
 from .expert import expert_app
 
@@ -141,13 +143,3 @@ guide_graph = (
 
 checkpointer = MemorySaver()
 guide_app = guide_graph.compile(checkpointer=checkpointer)
-
-if __name__ == "__main__":
-    config = {"configurable": {"thread_id": "1"}}
-
-    state: GuideState = {}
-    guide_state = guide_app.invoke(state, config=config)
-
-    while "__interrupt__" in guide_state:
-        user_input = input("Ввод:")
-        guide_state = guide_app.invoke(Command(resume=user_input), config=config)

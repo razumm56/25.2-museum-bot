@@ -7,7 +7,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph
 from langgraph.graph.state import END, START
 
-from .llm import LLMFactory
+from ai_museum.agents.llm import LLMFactory
 
 llm = LLMFactory.get_llm("gigachat")
 
