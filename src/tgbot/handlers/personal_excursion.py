@@ -50,6 +50,7 @@ async def set_style_voice(m: Message, state: FSMContext, bot: Bot):
     if not text:
         await m.answer('Сообщение не распознано')
         return
+    os.remove(f"{m.voice.file_id}.ogg")
     await state.update_data(style=text)
     await state.set_state(Startup.format)
     await m.answer('*Выбери удобный для себя формат экскурсии*\n\n'
@@ -130,10 +131,9 @@ async def voice_question(m: Message, state: FSMContext, bot: Bot):
     if not text:
         await m.answer('Сообщение не распознано')
         return
+    os.remove(f"{m.voice.file_id}.ogg")
     answer = await llm.generate_answer(text)
     await m.answer(answer)
-    if os.path.exists(f"{m.voice.file_id}.ogg"):
-        os.remove(f"{m.voice.file_id}.ogg")
 
 
 
