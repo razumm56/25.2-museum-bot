@@ -8,7 +8,9 @@ from langgraph.graph.state import END, Command, RunnableConfig
 from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
-from .llm import LLMFactory
+from loguru import logger
+
+from ai_museum.agents.llm import LLMFactory
 from .expert import expert_app
 
 llm = LLMFactory.get_llm("gigachat")
@@ -67,13 +69,13 @@ def decide_next_move(state: GuideState):
         [ACTION_PICKER_PROMPT, HumanMessage(state["user_input"])]
     )
     if not isinstance(next_move, GuideAction):
-        print("модель не смогла вернуть правильный объект")
+        logger.info("модель не смогла вернуть правильный объект")
         return Command(goto="user_input")
     if not next_move:
-        print("модель не поняла класс сообщения")
+        logger.info("модель не поняла класс сообщения")
         return Command(goto="user_input")
     if next_move.action == "lead" and not next_move.exp_id:
-        print("модель отправила к экспонату но не указала экспонат")
+        logger.info("модель отправила к экспонату но не указала экспонат")
         return Command(goto="user_input")
 
     print(next_move.action)
@@ -86,9 +88,9 @@ def decide_next_move(state: GuideState):
 
 
 def guide(state: GuideState):
-    print("Ответ гида: ")
+    logger.info("Ответ гида: ")
     agent_state: AgentState[None] = guide_agent.invoke(state["agent_state"])
-    print(agent_state["messages"][-1].content)
+    logger.info(agent_state["messages"][-1].content)
 
     return {"agent_state": agent_state}
 
