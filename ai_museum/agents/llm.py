@@ -5,8 +5,11 @@ from typing import Literal
 import dotenv
 import requests
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_community.embeddings.gigachat import GigaChatEmbeddings
 from langchain_gigachat import GigaChat
 from langchain_openai.chat_models import ChatOpenAI
+from langchain_core.embeddings import Embeddings
 from pydantic import SecretStr
 
 if not dotenv.load_dotenv():
@@ -67,3 +70,36 @@ class LLMFactory:
             )
 
         raise ValueError(f"Unknown LLM name: {name!r}")
+        
+    @classmethod
+    def get_embeddings(cls, name: Literal["gigachat", "openai"]) -> Embeddings:
+        """Возвращает экземпляр Embeddings по имени."""
+
+        if name == "openai":
+            return OpenAIEmbeddings(
+                base_url=cls._get_env_var("OPENAI_BASE_URL"),
+                api_key=cls._get_env_var("OPENAI_KEY"),
+                model="text-embedding-3-small"
+            )
+
+        if name == "gigachat":
+            return GigaChatEmbeddings(
+                credentials=cls._get_env_var("GIGACHAT_KEY"),
+                model=cls._get_env_var("GIGACHAT_EMBEDDER_MODEL"),
+                verify_ssl_certs=False,
+                scope="GIGACHAT_API_CORP",
+            )
+
+        raise ValueError(f"Unknown Embeddings name: {name!r}")
+
+    @classmethod
+    def get_embedding_model(cls, name: Literal["gigachat", "openai"]) -> str:
+        """Возвращает название модели для эмбеддингов."""
+        
+        if name == "openai":
+            return "text-embedding-3-small"
+            
+        if name == "gigachat":
+            return cls._get_env_var("GIGACHAT_MODEL")
+            
+        raise ValueError(f"Unknown Embeddings name: {name!r}")
