@@ -19,7 +19,7 @@ class LLM:
         return guide_state["agent_state"]["messages"][-1].content
 
     async def generate_answer(self, question: str):
-        return 'Вместо ответа'
+        return 'Вместо ответа LLM'
         checkpointer = MemorySaver()
         guide_app = guide_graph.compile(checkpointer=checkpointer)
         

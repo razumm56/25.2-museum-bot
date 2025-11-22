@@ -86,9 +86,12 @@ async def voice_question(m: Message, state: FSMContext, bot: Bot):
     file = await bot.get_file(m.voice.file_id)
     await bot.download_file(file.file_path, f"{m.voice.file_id}.ogg")
     text = await stt.transcribe_audio(f"{m.voice.file_id}.ogg")
-    await m.answer(f'Транскрибировано: {text}')
-    if os.path.exists(f"{m.voice.file_id}.ogg"):
-        os.remove(f"{m.voice.file_id}.ogg")
+    if not text:
+        await m.answer('Сообщение не распознано')
+        return
+    os.remove(f"{m.voice.file_id}.ogg")
+    answer = await llm.generate_answer(text)
+    await m.answer(answer)
 
 
 @router.message(Excursion.exhibit)

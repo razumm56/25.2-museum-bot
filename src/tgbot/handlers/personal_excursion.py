@@ -33,13 +33,31 @@ async def start(q: CallbackQuery, state: FSMContext, bot: Bot):
                            '🧠 Научно популярное путешествие\n'
                            '🌟 Рассказ Снегурочки, другого любимого персонажа или даже известной личности\n'
                            '🎄 Историю Сибири с тайнами и легендами\n\n'
-                           '💬 Просто напиши стиль или персонажа, а я адаптирую экскурсию под тво желания!'
+                           '💬 Просто напиши стиль или персонажа, а я адаптирую экскурсию под твои желания!'
                            )
     await state.set_state(Startup.style)
     await bot.send_message(q.from_user.id,
                            'Если любой момент захочешь выйти или начать заново — нажми кнопку внизу👇',
                             reply_markup=keyboards.main_keyboard
     )
+
+
+@pers_route.message(Startup.style, F.voice)
+async def set_style_voice(m: Message, state: FSMContext, bot: Bot):
+    file = await bot.get_file(m.voice.file_id)
+    await bot.download_file(file.file_path, f"{m.voice.file_id}.ogg")
+    text = await stt.transcribe_audio(f"{m.voice.file_id}.ogg")
+    if not text:
+        await m.answer('Сообщение не распознано')
+        return
+    os.remove(f"{m.voice.file_id}.ogg")
+    await state.update_data(style=text)
+    await state.set_state(Startup.format)
+    await m.answer('*Выбери удобный для себя формат экскурсии*\n\n'
+                   '📸 С изображениями экспонатов — увидишь фото каждого объекта\n'
+                   '📝 Без изображений — описание в виде текста и аудио',
+                   parse_mode=ParseMode.MARKDOWN,
+                   reply_markup=keyboards.formats_keyboard)
 
 
 @pers_route.message(Startup.style)
@@ -110,9 +128,12 @@ async def voice_question(m: Message, state: FSMContext, bot: Bot):
     file = await bot.get_file(m.voice.file_id)
     await bot.download_file(file.file_path, f"{m.voice.file_id}.ogg")
     text = await stt.transcribe_audio(f"{m.voice.file_id}.ogg")
-    await m.answer(f'Транскрибировано: {text}')
-    if os.path.exists(f"{m.voice.file_id}.ogg"):
-        os.remove(f"{m.voice.file_id}.ogg")
+    if not text:
+        await m.answer('Сообщение не распознано')
+        return
+    os.remove(f"{m.voice.file_id}.ogg")
+    answer = await llm.generate_answer(text)
+    await m.answer(answer)
 
 
 
