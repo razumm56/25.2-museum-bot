@@ -2,9 +2,10 @@ import asyncio
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import Command
-from agent.guide import guide_app, guide_graph, GuideState
 from loguru import logger
-from db.create_tabels import get_description
+
+from ai_museum.agent.guide import GuideState, guide_app, guide_graph
+from ai_museum.db.create_tabels import get_description
 
 
 class LLM:

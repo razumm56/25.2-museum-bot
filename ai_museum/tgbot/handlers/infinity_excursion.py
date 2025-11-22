@@ -1,19 +1,20 @@
 import os
 
-from aiogram.types import Message, CallbackQuery, FSInputFile
-from aiogram import F, Router, Bot
-from aiogram.fsm.context import FSMContext
+from aiogram import Bot, F, Router
 from aiogram.enums.parse_mode import ParseMode
 from aiogram.filters import StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
-from models.llm import LLM
-from models.tts import TTS
-from models.stt import STTManager
-from tgbot.states.infinity_excursion_states import InfinityExcursionStartup
-from tgbot.states.infinity_excursion_states import InfinityExcursion
-from tgbot import keyboards
-from tgbot.utils import exhibits
-
+from ai_museum.models.llm import LLM
+from ai_museum.models.stt import STTManager
+from ai_museum.models.tts import TTS
+from ai_museum.tgbot import keyboards
+from ai_museum.tgbot.states.infinity_excursion_states import (
+    InfinityExcursion,
+    InfinityExcursionStartup,
+)
+from ai_museum.tgbot.utils import exhibits
 
 inf_router = Router()
 llm = LLM()

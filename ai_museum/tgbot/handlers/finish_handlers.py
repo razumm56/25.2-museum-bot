@@ -1,12 +1,11 @@
-from aiogram import F, Router, Bot, types
-from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram import Bot, F, Router, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.types import Message
 from loguru import logger
 
-from tgbot.keyboards import keyboard_start_after_finish_excursion
-
+from ai_museum.tgbot.keyboards import keyboard_start_after_finish_excursion
 
 finish_router = Router()
 

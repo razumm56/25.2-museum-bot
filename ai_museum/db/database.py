@@ -5,7 +5,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy import String, text
 from pgvector.sqlalchemy import Vector
 
-from create_tabels import engine
+from .create_tabels import engine
 
 Session = sessionmaker(engine)
 

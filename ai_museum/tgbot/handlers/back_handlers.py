@@ -4,7 +4,7 @@ from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from loguru import logger
 
-from tgbot.keyboards import keyboard_choose_museums, keyboard_excursion_types
+from ai_museum.tgbot.keyboards import keyboard_choose_museums, keyboard_excursion_types
 
 
 back_router = Router()

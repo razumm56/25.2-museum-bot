@@ -2,10 +2,10 @@ import asyncio
 import os
 
 from aiogram import Bot, Dispatcher
-from loguru import logger
 from dotenv import load_dotenv
+from loguru import logger
 
-from tgbot.handlers import main_router
+from ai_museum.tgbot.handlers import main_router
 
 load_dotenv()
 

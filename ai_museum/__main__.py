@@ -1,5 +1,5 @@
 import asyncio
 
-from tgbot.bot import main
+from ai_museum.tgbot.bot import main
 
 asyncio.run(main())

@@ -1,12 +1,16 @@
-from aiogram import F, Router, Bot, types
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram import Bot, F, Router, types
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from loguru import logger
 
-from tgbot.keyboards import keyboard_choose_museums, keyboard_excursion_types, keyboard_after_choose_personal_excursion_type
-from tgbot.states import HardExcursion, Start
+from ai_museum.tgbot.keyboards import (
+    keyboard_after_choose_personal_excursion_type,
+    keyboard_choose_museums,
+    keyboard_excursion_types,
+)
+from ai_museum.tgbot.states import HardExcursion, Start
 
 start_router = Router()
 

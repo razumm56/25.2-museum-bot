@@ -1,20 +1,23 @@
 import os
 
-from aiogram.types import Message, CallbackQuery, FSInputFile
-from aiogram import F, Router, Bot
-from aiogram.fsm.context import FSMContext
+from aiogram import Bot, F, Router
 from aiogram.enums.parse_mode import ParseMode
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery, FSInputFile, Message
 
-from models.llm import LLM
-from models.tts import TTS
-from models.stt import STTManager
-from tgbot.states.personal_excursion_states import PersonalExcursionStartup as Startup
-from tgbot.states.personal_excursion_states import PersonalExcursionExcursion as Excursion
-from tgbot.utils import generate_map
-from tgbot import keyboards
-from tgbot.handlers.finish_handlers import finish_excursion
-from db.create_tabels import get_image_url
-
+from ai_museum.db.create_tabels import get_image_url
+from ai_museum.models.llm import LLM
+from ai_museum.models.stt import STTManager
+from ai_museum.models.tts import TTS
+from ai_museum.tgbot import keyboards
+from ai_museum.tgbot.handlers.finish_handlers import finish_excursion
+from ai_museum.tgbot.states.personal_excursion_states import (
+    PersonalExcursionExcursion as Excursion,
+)
+from ai_museum.tgbot.states.personal_excursion_states import (
+    PersonalExcursionStartup as Startup,
+)
+from ai_museum.tgbot.utils import generate_map
 
 pers_route = Router()
 llm = LLM()
