@@ -1,3 +1,5 @@
+import os
+
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram import F, Router, Bot
 from aiogram.fsm.context import FSMContext
@@ -6,6 +8,7 @@ from aiogram.filters import StateFilter
 
 from models.llm import LLM
 from models.tts import TTS
+from models.stt import STTManager
 from tgbot.states.infinity_excursion_states import InfinityExcursionStartup
 from tgbot.states.infinity_excursion_states import InfinityExcursion
 from tgbot import keyboards
@@ -15,6 +18,7 @@ from tgbot.utils import exhibits
 inf_router = Router()
 llm = LLM()
 tts = TTS()
+stt = STTManager()
 
 
 @inf_router.callback_query(F.data == 'endless_excursion')
@@ -41,6 +45,15 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     await message.delete()
     await bot.send_message(q.from_user.id, description)
 
+
+@inf_router.message(InfinityExcursion.exhibit, F.voice)
+async def voice_question(m: Message, state: FSMContext, bot: Bot):
+    file = await bot.get_file(m.voice.file_id)
+    await bot.download_file(file.file_path, f"{m.voice.file_id}.ogg")
+    text = await stt.transcribe_audio(f"{m.voice.file_id}.ogg")
+    await m.answer(f'Транскрибировано: {text}')
+    if os.path.exists(f"{m.voice.file_id}.ogg"):
+        os.remove(f"{m.voice.file_id}.ogg")
 
 @inf_router.message(InfinityExcursion.exhibit)
 async def exhibit_infinity(m: Message, state: FSMContext):

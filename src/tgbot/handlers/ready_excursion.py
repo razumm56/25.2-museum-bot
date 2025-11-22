@@ -1,3 +1,5 @@
+import os
+
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram import F, Router, Bot
 from aiogram.fsm.context import FSMContext
@@ -5,6 +7,7 @@ from aiogram.enums.parse_mode import ParseMode
 
 from models.llm import LLM
 from models.tts import TTS
+from models.stt import STTManager
 from tgbot.states.ready_excursion_states import ReadyExcursionStartup as Startup
 from tgbot.states.ready_excursion_states import ReadyExcursionExcursion as Excursion
 from tgbot import keyboards
@@ -16,6 +19,7 @@ from db.create_tabels import get_image_url
 router = Router()
 llm = LLM()
 tts = TTS()
+stt = STTManager()
 
 @router.callback_query(F.data == 'ready_excursion')
 async def start(q: CallbackQuery, state: FSMContext, bot: Bot):
@@ -75,6 +79,16 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
         await bot.send_photo(q.from_user.id, get_image_url(exhibit_id), caption=description[:1024], reply_markup=keyboards.next_exhibit)
     else:
         await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
+
+
+@router.message(Excursion.exhibit, F.voice)
+async def voice_question(m: Message, state: FSMContext, bot: Bot):
+    file = await bot.get_file(m.voice.file_id)
+    await bot.download_file(file.file_path, f"{m.voice.file_id}.ogg")
+    text = await stt.transcribe_audio(f"{m.voice.file_id}.ogg")
+    await m.answer(f'Транскрибировано: {text}')
+    if os.path.exists(f"{m.voice.file_id}.ogg"):
+        os.remove(f"{m.voice.file_id}.ogg")
 
 
 @router.message(Excursion.exhibit)

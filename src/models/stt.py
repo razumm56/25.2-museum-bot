@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 import sys
 import assemblyai as aai
-from config.settings import STT_CONFIG
+# from config.settings import STT_CONFIG
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -12,7 +12,7 @@ class STTManager:
     """Менеджер для преобразования речи в текст (AssemblyAI)"""
     
     def __init__(self):
-        self.api_key = STT_CONFIG.get('api_key')
+        self.api_key = 'bc4a3973a6f9408281b3e276563188ef'
         aai.settings.api_key = self.api_key
         
         self.config = aai.TranscriptionConfig(
