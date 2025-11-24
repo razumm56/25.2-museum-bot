@@ -8,19 +8,18 @@ import cv2
 import uuid
 import sys
 from pathlib import Path
-
-#свой раг вставите 
-from models.rag import RAGSystem
+from typing import List, Dict, Tuple, Set, Any, Optional
+from ai_museum.agents.infinity_excursion_agent.utils import search_similar_exhibits
 
 
 class MuseumRouteBuilder:
-    def __init__(self, graph_file, background_image_path):
-        self.background_image_path = background_image_path
-        self.graph_file = graph_file
+    def __init__(self, graph_file: str, background_image_path: str) -> None:
+        self.background_image_path: str = background_image_path
+        self.graph_file: str = graph_file
         with open(self.graph_file, "r", encoding="utf-8") as f:
-            self.graph_data = json.load(f)
+            self.graph_data: Dict[str, Any] = json.load(f)
             
-    def load_graph(self):
+    def load_graph(self) -> nx.Graph:
         """Загружает граф музея из JSON файла."""
         G = nx.Graph()
         for node in self.graph_data["nodes"]:
@@ -29,11 +28,11 @@ class MuseumRouteBuilder:
             G.add_edge(edge["from"], edge["to"], weight=edge["distance"])
         return G
 
-    def select_optimal_nodes(self, G, nodes_list):
+    def select_optimal_nodes(self, G: nx.Graph, nodes_list: List[str]) -> Tuple[List[str], Dict[str, str]]:
         """Выбирает оптимальные узлы из найденных экспонатов."""
-        selected_nodes = []
-        nodes_to_visit = ['0']
-        node_to_entry_map = {} 
+        selected_nodes: List[str] = []
+        nodes_to_visit: List[str] = ['0']
+        node_to_entry_map: Dict[str, str] = {} 
 
         for entry in nodes_list:
             if isinstance(entry, str) and entry.startswith('[') and entry.endswith(']'):
@@ -50,10 +49,10 @@ class MuseumRouteBuilder:
         nodes_to_visit.extend(selected_nodes)
         return nodes_to_visit, node_to_entry_map
 
-    def _find_best_node(self, G, nodes):
+    def _find_best_node(self, G: nx.Graph, nodes: List[str]) -> Optional[str]:
         """Находит оптимальный узел среди нескольких кандидатов."""
-        best_node = None
-        best_length = float('inf')
+        best_node: Optional[str] = None
+        best_length: float = float('inf')
         
         for node in nodes:
             total_length = 0
@@ -71,10 +70,10 @@ class MuseumRouteBuilder:
 
         return best_node
 
-    def _build_distance_matrix(self, G, nodes_to_visit):
+    def _build_distance_matrix(self, G: nx.Graph, nodes_to_visit: List[str]) -> Tuple[Dict[Tuple[str, str], float], List[Tuple[str, str]]]:
         """Строит матрицу кратчайших путей между узлами."""
-        shortest_paths = {}
-        unreachable_pairs = []
+        shortest_paths: Dict[Tuple[str, str], float] = {}
+        unreachable_pairs: List[Tuple[str, str]] = []
 
         for u, v in combinations(nodes_to_visit, 2):
             try:
@@ -86,7 +85,7 @@ class MuseumRouteBuilder:
 
         return shortest_paths, unreachable_pairs
 
-    def _create_reduced_graph(self, shortest_paths, nodes_to_visit):
+    def _create_reduced_graph(self, shortest_paths: Dict[Tuple[str, str], float], nodes_to_visit: List[str]) -> nx.Graph:
         """Создает упрощенный граф только с узлами для посещения."""
         G_reduced = nx.Graph()
         for node in nodes_to_visit:
@@ -95,7 +94,7 @@ class MuseumRouteBuilder:
             G_reduced.add_edge(u, v, distance=dist)
         return G_reduced
 
-    def _solve_tsp(self, G_reduced):
+    def _solve_tsp(self, G_reduced: nx.Graph) -> List[str]:
         """Решает задачу коммивояжера для оптимизации маршрута."""
         initial_route = nx.approximation.traveling_salesman_problem(G_reduced, weight='distance', cycle=True)
         optimized_route = nx.approximation.simulated_annealing_tsp(
@@ -103,9 +102,9 @@ class MuseumRouteBuilder:
         )
         return optimized_route
 
-    def _expand_route(self, G, tsp_route):
+    def _expand_route(self, G: nx.Graph, tsp_route: List[str]) -> List[str]:
         """Разворачивает маршрут, добавляя все промежуточные узлы."""
-        full_path = []
+        full_path: List[str] = []
         for i in range(len(tsp_route) - 1):
             try:
                 segment = nx.shortest_path(G, source=tsp_route[i], target=tsp_route[i + 1], weight='distance')
@@ -116,7 +115,7 @@ class MuseumRouteBuilder:
                 print(f"Warning: No path between {tsp_route[i]} and {tsp_route[i + 1]}")
         return full_path
     
-    def _visualize_route(self, G, full_path, key_nodes):
+    def _visualize_route(self, G: nx.Graph, full_path: List[str], key_nodes: List[str]) -> str:
         """Создает визуализацию маршрута на карте музея."""
         image = cv2.imread(self.background_image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -148,7 +147,7 @@ class MuseumRouteBuilder:
 
         return output_path
 
-    def build_route(self, G, retrieved_documents, k=5):
+    def build_route(self, G: nx.Graph, retrieved_documents: Dict[str, List[Any]], k: int = 5) -> Tuple[List[str], List[Dict[str, Any]], str]:
         """Строит оптимальный маршрут по музею из найденных экспонатов."""
         nodes_to_visit, node_mapping = self.select_optimal_nodes(G, retrieved_documents['nodes'])
         
@@ -165,8 +164,8 @@ class MuseumRouteBuilder:
 
         image_path = self._visualize_route(G, full_path, optimized_route)
 
-        ordered_artworks = []
-        added_nodes = set()
+        ordered_exhibits: List[Dict[str, Any]] = []
+        added_nodes: Set[str] = set()
         
         for node in optimized_route:
             if node == '0' or node in added_nodes:
@@ -175,44 +174,40 @@ class MuseumRouteBuilder:
             original_entry = node_mapping.get(node, node)
             try:
                 idx = retrieved_documents['nodes'].index(original_entry)
-                ordered_artworks.append({
+                ordered_exhibits.append({
                     "id": node,
                     "name": retrieved_documents['name'][idx],
                     "text": retrieved_documents['text'][idx],
-                    "short_description": retrieved_documents['short_description'][idx],
                     "image": retrieved_documents['image'][idx]
                 })
                 added_nodes.add(node)
             except (ValueError, IndexError) as e:
-                print(f"Warning: Could not find artwork for node {node}: {e}")
+                print(f"Warning: Could not find exhibit for node {node}: {e}")
 
-        return optimized_route, ordered_artworks, image_path
+        return optimized_route, ordered_exhibits, image_path
 
-    async def generate_route(self, k, user_description, user_query):
+    async def generate_route(self, k: int, user_query: str) -> Tuple[str, List[Dict[str, Any]], str]:
         """Генерирует маршрут по музею на основе запроса пользователя."""
-        rag = RAGSystem()
-        artworks = rag.search_artworks(user_query, top_k=k)
+        exhibits = search_similar_exhibits(user_query, k=k)
         
         retrieved_documents = {
-            'nodes': [artwork[4] for artwork in artworks],
-            'name': [artwork[1] for artwork in artworks],
-            'text': [artwork[2] for artwork in artworks],
-            'short_description': [artwork[3] for artwork in artworks],
-            'image': [artwork[6] for artwork in artworks]
+            'nodes': [ex.nodes for ex in exhibits],
+            'name': [ex.name for ex in exhibits],
+            'text': [ex.description for ex in exhibits],
+            'image': [ex.image_url for ex in exhibits]
         }
         
         print(f"Retrieved nodes: {retrieved_documents['nodes']}")
         
         G = self.load_graph()
-        route, ordered_artworks, image_path = self.build_route(G, retrieved_documents, k)
+        route, ordered_exhibits, image_path = self.build_route(G, retrieved_documents, k)
         
         route_text = "\n\n".join([
-            f"{idx}. {artwork['name']}\nЭкспонат на карте: {artwork['id']}"
-            for idx, artwork in enumerate(ordered_artworks, start=1)
+            f"{idx}. {ex['name']}\nЭкспонат на карте: {ex['id']}"
+            for idx, ex in enumerate(ordered_exhibits, start=1)
         ])
         
-        rag.close()
-        return route_text, ordered_artworks, image_path
+        return route_text, ordered_exhibits, image_path
     
 
 route_builder = MuseumRouteBuilder('graph.json', 'route.jpg')
