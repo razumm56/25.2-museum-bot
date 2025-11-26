@@ -6,7 +6,7 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
-from ai_museum.models.llm import LLM
+# from ai_museum.models.llm import LLM
 from ai_museum.models.stt import STTManager
 from ai_museum.models.tts import TTS
 from ai_museum.tgbot import keyboards
@@ -17,7 +17,6 @@ from ai_museum.tgbot.states.infinity_excursion_states import (
 from ai_museum.tgbot.utils import exhibits
 
 inf_router = Router()
-llm = LLM()
 tts = TTS()
 stt = STTManager()
 
@@ -41,7 +40,7 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.message.delete()
     await state.set_state(InfinityExcursion.exhibit)
     message = await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
-    description = await llm.generate_description(exhibit_id=1)
+    description = ""
     await state.update_data(history=[{"from": "assistant", "text": description}])
     await message.delete()
     await bot.send_message(q.from_user.id, description)
@@ -56,7 +55,7 @@ async def voice_question(m: Message, state: FSMContext, bot: Bot):
         await m.answer('Сообщение не распознано')
         return
     os.remove(f"{m.voice.file_id}.ogg")
-    answer = await llm.generate_answer(text)
+    answer = ""
     await m.answer(answer)
 
 
@@ -65,7 +64,7 @@ async def exhibit_infinity(m: Message, state: FSMContext):
     history = await state.get_value('history')
     history.append({"from": "user", "text": m.text})
     await m.answer('Обрабатываю ответ на вопрос... Подождите немного!⏳')
-    answer = await llm.generate_answer(m.text)
+    answer = ""
     history.append({"from": "assistant", "text": answer})
     await state.update_data(history=history)
     await m.answer(answer)

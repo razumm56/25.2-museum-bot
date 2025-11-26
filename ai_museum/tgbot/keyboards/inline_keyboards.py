@@ -65,11 +65,11 @@ user_ready = InlineKeyboardMarkup(inline_keyboard=[[
     ]])
 
 routes_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text='Заготовленный', callback_data='route prepared'),
+        InlineKeyboardButton(text='5', callback_data='route 5'),
     ], [
-        InlineKeyboardButton(text='Экспресс', callback_data='route express'),
+        InlineKeyboardButton(text='10', callback_data='route 10'),
     ], [
-    InlineKeyboardButton(text='Индивидуальная', callback_data='route individual')
+    InlineKeyboardButton(text='15', callback_data='route 15')
 ]])
 
 next_exhibit = InlineKeyboardMarkup(inline_keyboard=[[

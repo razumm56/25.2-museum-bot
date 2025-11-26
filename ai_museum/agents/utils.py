@@ -10,7 +10,7 @@ def get_embedding(text: str) -> list[float]:
     """Получение эмбеддинга для текста"""
     return embedder.embed_query(text)
 
-def search_similar_exhibits(query: str, k: int = 3) -> list[Exhibit]:
+def search_similar_exhibits(query: str, k: int = 3) -> list:
     """Поиск похожих экспонатов по запросу"""
     query_embedding = get_embedding(query)
     
@@ -31,10 +31,12 @@ def format_exhibit_context(exhibits: list[Exhibit]) -> str:
         context += f"- ID: {exhibit.id}, Название: {exhibit.name}, Описание: {exhibit.description}\n"
     return context
 
-#TODO убрать
-# dialog = "dasdsadasdasdasdsadasdasdasdasdasd"
-
-# exps = search_similar_exhibits(dialog) # 3 ближайших по тексту
-# contex = format_exhibit_context(exps) # 3 ближайших по тексту в виде текст
-# prompt = f"Выбери 1 экспонат, который наиболее пойдет пользователю, экспонаты {contex}, предыдущий диалог {dialog[:2000]}" # -> 1-3 1 
-# format_exhibit_context(exps[0]) # Информация по наиболее релевантному экспонату
+def get_exps_names_by_ids(exps_ids: list) -> list:
+    with Session() as session:
+        # Поиск по косинусной близости
+        stmt = (
+            select(Exhibit.name)
+            .where(Exhibit.id.in_(exps_ids))
+        )
+        results = session.execute(stmt).scalars().all()
+    return results
