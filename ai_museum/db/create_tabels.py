@@ -38,6 +38,7 @@ class Exhibit(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
     description: Mapped[str] = mapped_column(String())
+    nodes: Mapped[str] = mapped_column(String(), nullable=True)
     image_url: Mapped[str] = mapped_column(String(), nullable=True)
     embedding: Mapped[Vector] = mapped_column(Vector(1024))
 

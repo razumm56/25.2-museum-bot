@@ -1,5 +1,7 @@
 import sys
 
+import asyncio
+
 from typing import Literal, TypedDict
 
 from langchain.agents import AgentState, create_agent
@@ -16,6 +18,7 @@ from ai_museum.agents.llm import LLMFactory
 from ai_museum.agents.prompts import ACTION_PICKER_PROMPT, GREETING_PROMPT, ANSWER_USER_QUESTION, DESCRIBE_EXP_PROMT
 from ai_museum.agents.personal_excursion_agent.expert import expert_app
 from ai_museum.agents.utils import search_similar_exhibits, get_exps_names_by_ids
+from ai_museum.scripts.route.generation_route import route_builder
 
 #TODO удалить настройку логера
 logger.remove()  # Удаляет стандартный обработчик  
@@ -111,6 +114,14 @@ def choose_exps_ids(state: PersonalGuideState):
     for exp in personal_exps:
         state['exps_ids_description'].update({getattr(exp, 'id'): [getattr(exp, 'description'), getattr(exp, 'name')]})
     logger.info(f"Экспонаты: {state['exps_ids_description']}")
+    
+    try:
+        image_path = asyncio.run(
+            route_builder.generate_route(exhibits=personal_exps)
+        )
+        logger.info(f"Маршрут сохранен: {image_path}")
+    except Exception as e:
+        logger.error(f"Ошибка при генерации маршрута: {e}")
     
     return state
     

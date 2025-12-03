@@ -1,6 +1,7 @@
 import networkx as nx
 import ast
 import os
+import shutil
 from itertools import combinations
 import json
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ import uuid
 import sys
 from pathlib import Path
 from typing import List, Dict, Tuple, Set, Any, Optional
-from ai_museum.agents.utils import search_similar_exhibits
+from ai_museum.db.create_tabels import Exhibit
 
 
 class MuseumRouteBuilder:
@@ -133,7 +134,9 @@ class MuseumRouteBuilder:
         node_colors = ['#8b00ff' if node in key_nodes else '#cccccc' for node in subgraph.nodes]
         node_sizes = [200 if node in key_nodes else 100 for node in subgraph.nodes]
 
-        output_path = f'route_{uuid.uuid4()}.jpg'
+        routes_folder = os.path.join("ai_museum", "data", "routes")
+        os.makedirs(routes_folder, exist_ok=True)
+        output_path = os.path.join(routes_folder, f'route_{uuid.uuid4()}.jpg')
 
         fig, ax = plt.subplots(figsize=(12, 8))
         ax.imshow(image)
@@ -186,9 +189,8 @@ class MuseumRouteBuilder:
 
         return optimized_route, ordered_exhibits, image_path
 
-    async def generate_route(self, k: int, user_query: str) -> Tuple[str, List[Dict[str, Any]], str]:
-        """Генерирует маршрут по музею на основе запроса пользователя."""
-        exhibits = search_similar_exhibits(user_query, k=k)
+    async def generate_route(self, exhibits: List[Exhibit]) -> str:
+        """Генерирует маршрут по музею из списка экспонатов и возвращает путь к изображению."""
         
         retrieved_documents = {
             'nodes': [ex.nodes for ex in exhibits],
@@ -200,14 +202,9 @@ class MuseumRouteBuilder:
         print(f"Retrieved nodes: {retrieved_documents['nodes']}")
         
         G = self.load_graph()
-        route, ordered_exhibits, image_path = self.build_route(G, retrieved_documents, k)
+        route, ordered_exhibits, image_path = self.build_route(G, retrieved_documents, len(exhibits))
         
-        route_text = "\n\n".join([
-            f"{idx}. {ex['name']}\nЭкспонат на карте: {ex['id']}"
-            for idx, ex in enumerate(ordered_exhibits, start=1)
-        ])
-        
-        return route_text, ordered_exhibits, image_path
+        return image_path
     
 
 route_builder = MuseumRouteBuilder('graph.json', 'route.jpg')
