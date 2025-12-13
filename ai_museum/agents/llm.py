@@ -5,9 +5,8 @@ from typing import Literal
 import dotenv
 import requests
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.embeddings.gigachat import GigaChatEmbeddings
-from langchain_gigachat import GigaChat
+from langchain_openai import OpenAIEmbeddings
+from langchain_gigachat import GigaChat, GigaChatEmbeddings
 from langchain_openai.chat_models import ChatOpenAI
 from langchain_core.embeddings import Embeddings
 from pydantic import SecretStr

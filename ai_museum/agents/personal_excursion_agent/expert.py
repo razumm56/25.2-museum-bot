@@ -2,6 +2,7 @@ from typing import TypedDict
 
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware.types import ModelRequest, dynamic_prompt
+from langchain_classic.chains.question_answering.map_reduce_prompt import messages
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph
@@ -22,14 +23,15 @@ agent = create_agent(
 
 # граф эксперта
 class ExpertState(TypedDict):
-    agent_state: str
+    agent_state: dict
     exp_description: str
     user_input: str
 
 def init(state: ExpertState):
     defaults = {
-        "agent_state": "", 
+        "agent_state": {'messages': []},
         "exp_description": state["exp_description"],
+        'user_input': state['user_input'],
     }
     for key, value in defaults.items():
         state[key] = state.get(key, value)
@@ -38,6 +40,7 @@ def init(state: ExpertState):
 
 def describe(state: ExpertState):
     logger.info("Ответ эксперта:")
+    print('state', state['agent_state'])
     agent_state = llm.invoke(
         ANSWER_USER_QUESTION(state["user_input"], state["exp_description"])
     )

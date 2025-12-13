@@ -92,17 +92,21 @@ def guide(state: PersonalGuideState):
 
     state["exp_id"] = list(state["exps_ids_description"].keys())[state["current_exp_num"]]
     exp_description = state['exps_ids_description'][state['exp_id']]
-    answer = llm.invoke(DESCRIBE_EXP_PROMT(exp_description=exp_description))
-    logger.info(answer)
-    state['agent_state'] = answer
+    answer = llm.invoke(DESCRIBE_EXP_PROMT(exp_description=exp_description)).dict()
+    answer['messages'] = state['agent_state']['messages'] + [AIMessage(answer['content'])]
+    state["agent_state"] = answer
+    logger.info('ответ ответа: ' + str(answer))
     return state
 
 def user_input(state: PersonalGuideState):
     user_input = interrupt("waiting for user input")
     logger.info(f"Запрос пользователя: {user_input}")
+    print('!!!!')
+    print(state['agent_state'])
     if user_input:
         return {
             "user_input": user_input,
+            "messages": state["agent_state"]["messages"] + [HumanMessage(user_input)]
         }
     else:
         return {"user_input": ""}
@@ -112,13 +116,11 @@ def choose_exps_ids(state: PersonalGuideState):
     logger.info(f"Количество экспонатов: {state['excursion_len']}")
     personal_exps = search_similar_exhibits(query=state['user_description'], k=state['excursion_len'])
     for exp in personal_exps:
-        state['exps_ids_description'].update({getattr(exp, 'id'): [getattr(exp, 'description'), getattr(exp, 'name')]})
+        state['exps_ids_description'].update({getattr(exp, 'id'): [getattr(exp, 'short_description'), getattr(exp, 'name')]})
     logger.info(f"Экспонаты: {state['exps_ids_description']}")
     
     try:
-        image_path = asyncio.run(
-            route_builder.generate_route(exhibits=personal_exps)
-        )
+        image_path = route_builder.generate_route(exhibits=personal_exps)
         logger.info(f"Маршрут сохранен: {image_path}")
     except Exception as e:
         logger.error(f"Ошибка при генерации маршрута: {e}")
@@ -128,10 +130,10 @@ def choose_exps_ids(state: PersonalGuideState):
 def generate_greeting(state: PersonalGuideState):
     exp_names = [exp[1] for exp in state["exps_ids_description"].values()]
     logger.info(f"Названия экспонатов: {exp_names}")
-    greeting = llm.invoke(GREETING_PROMPT(exps_names=str(exp_names)))
+    greeting = llm.invoke(GREETING_PROMPT(exps_names=str(exp_names))).dict()
     logger.info(f"Приветствие гида: {greeting}")
+    greeting['messages'] = state['agent_state']['messages'] + [AIMessage(greeting['content'])]
     state["agent_state"] = greeting
-    
     return state
 
 def lead_to_exp(state: PersonalGuideState, config: RunnableConfig):
@@ -141,16 +143,11 @@ def lead_to_exp(state: PersonalGuideState, config: RunnableConfig):
     if not state["exp_id"]:
         raise RuntimeError("No exp_id to lead to")
 
-    expert_thread_id: str = (
-        config.get("configurable", {}).get("thread_id", "")
-    )
-    
-    config = {"configurable": {"thread_id": expert_thread_id}}
-    expert_state = expert_app.invoke({"exp_description": state['exps_ids_description'][state["exp_id"]], "user_input": state["user_input"]}, config=config)
-
-    return {
-        "agent_state": expert_state
-    }
+    expert_state = guide_agent.invoke({'messages': state['agent_state']['messages']})
+    expert_state['messages'] = state['agent_state']['messages'] + [AIMessage(expert_state['content'])]
+    state['agent_state'] = expert_state
+    print('new state', state)
+    return state
 
 
 guide_graph = (

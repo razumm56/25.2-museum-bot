@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from loguru import logger
 
 from ai_museum.agents.llm import LLMFactory
-from .expert import expert_app
+from ai_museum.agents.infinity_excursion_agent.expert import expert_app
 
 llm = LLMFactory.get_llm("gigachat")
 

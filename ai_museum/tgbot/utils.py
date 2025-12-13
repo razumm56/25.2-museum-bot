@@ -1,3 +1,6 @@
+from ai_museum.scripts.route.generation_route import route_builder
+from ai_museum.db.create_tabels import get_random_exhibits
+
 exhibits = {
     1: 'https://fotohosting.pro/i/exhibit1.hpzyl',
     2: 'https://fotohosting.pro/i/exhibit2.hpqDj',
@@ -6,5 +9,7 @@ exhibits = {
     5: 'https://fotohosting.pro/i/exhibit5.hpzsz'
 }
 
-async def generate_map(rout_type: str) -> str:
-    return 'temp/route_map.jpeg'
+def generate_map(count: int) -> str:
+    exhibits = get_random_exhibits(count)
+    print(exhibits)
+    return route_builder.generate_route(exhibits)

@@ -189,13 +189,13 @@ class MuseumRouteBuilder:
 
         return optimized_route, ordered_exhibits, image_path
 
-    async def generate_route(self, exhibits: List[Exhibit]) -> str:
+    def generate_route(self, exhibits: List[Exhibit]) -> str:
         """Генерирует маршрут по музею из списка экспонатов и возвращает путь к изображению."""
         
         retrieved_documents = {
             'nodes': [ex.nodes for ex in exhibits],
             'name': [ex.name for ex in exhibits],
-            'text': [ex.description for ex in exhibits],
+            'text': [ex.short_description for ex in exhibits],
             'image': [ex.image_url for ex in exhibits]
         }
         
@@ -205,6 +205,5 @@ class MuseumRouteBuilder:
         route, ordered_exhibits, image_path = self.build_route(G, retrieved_documents, len(exhibits))
         
         return image_path
-    
 
-route_builder = MuseumRouteBuilder('graph.json', 'route.jpg')
+route_builder = MuseumRouteBuilder('ai_museum/scripts/route/graph.json', 'ai_museum/scripts/route/route.jpg')

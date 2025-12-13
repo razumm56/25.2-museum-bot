@@ -18,7 +18,7 @@ def search_similar_exhibits(query: str, k: int = 3) -> list:
         # Поиск по косинусной близости
         stmt = (
             select(Exhibit)
-            .order_by(Exhibit.embedding.cosine_distance(query_embedding))
+            .order_by(Exhibit.embeddings.cosine_distance(query_embedding))
             .limit(k)
         )
         results = session.execute(stmt).scalars().all()
