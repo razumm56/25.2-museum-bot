@@ -1,28 +1,58 @@
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_museum_app
+    env_file:
+      - .env
+    volumes:
+      - ./temp:/app/temp
+      - ./data:/app/data
+    depends_on:
+      - postgres
+    networks:
+      - ai_museum_net
+    restart: unless-stopped
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: postgres_admin_panel
+    env_file:
+      - .env
     environment:
-      PGADMIN_DEFAULT_EMAIL: user@domain.com
-      PGADMIN_DEFAULT_PASSWORD: 12345678
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "5050:80"
+    depends_on:
+      - postgres
     networks:
       - ai_museum_net
+    restart: unless-stopped
 
   postgres:
     image: pgvector/pgvector:pg18-trixie
     container_name: postgres_container  
+    env_file:
+      - .env
     environment:
-      POSTGRES_PASSWORD: 12345678
-      POSTGRES_USER: AiMuseumDB
-      PGDATA: /var/lib/postgresql/data/AiMuseum
+      POSTGRES_PASSWORD: ${PGPASSWORD}
+      POSTGRES_USER: ${PGUSER}
+      POSTGRES_DB: ${DBNAME}
+      PGDATA: ${PGDATA}
     volumes:
       - postgre:/var/lib/postgresql
     ports:
       - "5433:5432"
     networks:
       - ai_museum_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${DBNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgre:
