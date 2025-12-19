@@ -10,11 +10,10 @@ from ai_museum.db.create_tabels import get_description
 
 
 class PersonalExcursionAgent:
-    def __init__(self, user_description: str):
+    def __init__(self):
         self.config = {"configurable": {"thread_id": uuid4()}}
         self.state: PersonalGuideState = {}
         self.guide_state = None
-        self.user_description = user_description
         # self.state: PersonalGuideState = {"user_description": self.user_description}
 
     async def start_excursion(self, user_id: str=""):
@@ -29,9 +28,11 @@ class PersonalExcursionAgent:
         else:
             logger.error("Ошибка: граф еще не создан")
             raise Exception
+
+    async def set_style(self, style: str):
+        self.guide_state = guide_app.invoke(Command(resume=style), config=self.config)
         
     async def send_greeting(self):
-        print('response', self.guide_state['agent_state']['messages'])
         return self.guide_state["agent_state"]['messages'][-1].content
         
 

@@ -31,11 +31,12 @@ DESCRIBE_EXP_PROMT = lambda exp_description: (f"""
 ВАЖНО: НЕ БОЛЕЕ 1024 символов
 """) 
 
-ANSWER_USER_QUESTION = lambda user_input, exp_description: (f"""
+ANSWER_USER_QUESTION = lambda user_input, exp_description, style: (f"""
 Ты помощник гида в музее,
 ответь на вопрос пользователя по экспонату
 
 описание экспоната: {exp_description},
-вопрос пользователя: {user_input}
+вопрос пользователя: {user_input},
+стиль твоего ответа: {style}
 ВАЖНО: НЕ БОЛЕЕ 1024  
 """)

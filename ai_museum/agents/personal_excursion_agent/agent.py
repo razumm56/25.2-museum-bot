@@ -14,7 +14,6 @@ from loguru import logger
 
 from ai_museum.agents.llm import LLMFactory
 from ai_museum.agents.prompts import ACTION_PICKER_PROMPT, GREETING_PROMPT, ANSWER_USER_QUESTION, DESCRIBE_EXP_PROMT
-from ai_museum.agents.personal_excursion_agent.expert import expert_app
 from ai_museum.agents.utils import search_similar_exhibits, get_exps_names_by_ids
 from ai_museum.scripts.route.generation_route import route_builder
 
@@ -57,6 +56,7 @@ class PersonalGuideState(TypedDict):
     current_exp_num: int
     user_description: str
     messages: list
+    style: str
 
 def init(state: PersonalGuideState):
     defaults = {
@@ -64,12 +64,21 @@ def init(state: PersonalGuideState):
         "exps_ids_description": {},
         "agent_state": {"messages": []},
         "current_exp_num": -1,
-        "user_description": ""
+        "user_description": "",
+        'style': ""
     }
     for key, value in defaults.items():
         state[key] = state.get(key, value)
     return state
- 
+
+def set_style(state: PersonalGuideState):
+    if state.get('style'):
+        return {"style": state['style']}
+
+    style = interrupt("waiting for user set style")
+
+    return {"style": style}
+
 def choose_excursion_len(state: PersonalGuideState):
     if state.get('excursion_len'):
         return {"excursion_len": state['excursion_len']}
@@ -145,7 +154,7 @@ def lead_to_exp(state: PersonalGuideState, config: RunnableConfig):
     if not state["exp_id"]:
         raise RuntimeError("No exp_id to lead to")
 
-    expert_state = llm.invoke(state['agent_state']['messages'] + [ANSWER_USER_QUESTION(state['exps_ids_description'][state['exp_id']], state['user_input'])]).dict()
+    expert_state = llm.invoke(state['agent_state']['messages'] + [ANSWER_USER_QUESTION(state['exps_ids_description'][state['exp_id']], state['user_input'], state['style'])]).dict()
     state["agent_state"] = {"messages": state['agent_state']['messages'] + [AIMessage(expert_state['content'])]}
     return state
 
@@ -153,6 +162,7 @@ def lead_to_exp(state: PersonalGuideState, config: RunnableConfig):
 guide_graph = (
     StateGraph(state_schema=PersonalGuideState)
     .add_node(init)
+    .add_node(set_style)
     .add_node(choose_excursion_len)
     .add_node(choose_exps_ids)
     .add_node(generate_greeting)
@@ -161,7 +171,8 @@ guide_graph = (
     .add_node(guide)
     .add_node(lead_to_exp)
     .add_edge(START, "init")
-    .add_edge("init", "choose_excursion_len")
+    .add_edge("init", "set_style")
+    .add_edge("set_style", "choose_excursion_len")
     .add_edge("choose_excursion_len", "choose_exps_ids")
     .add_edge("choose_exps_ids", "generate_greeting")
     .add_edge("generate_greeting", "user_input")
