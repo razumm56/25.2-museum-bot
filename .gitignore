@@ -11,3 +11,4 @@ __pycache__/
 
 .env
 .idea
+ai_museum/data/routes/*

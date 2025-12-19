@@ -1,7 +1,5 @@
 import sys
 
-import asyncio
-
 from typing import Literal, TypedDict
 
 from langchain.agents import AgentState, create_agent
@@ -29,7 +27,13 @@ llm = LLMFactory.get_llm("gigachat")
 SYSTEM_PROMPT = """
 Ты виртуальный экскурсовод в музее. Ты выступаешь в роли проводника к экспонатам.
 """
-guide_agent = create_agent(llm, system_prompt=SYSTEM_PROMPT)
+
+class EmptyContext(TypedDict):
+    pass
+
+guide_agent = create_agent(llm, system_prompt=SYSTEM_PROMPT,
+                           state_schema=AgentState,
+                           context_schema=EmptyContext)
 
 class PersonalGuideAction(BaseModel):
     """Определяет дальнейшее действие гида: continue, lead или exit"""
@@ -52,6 +56,7 @@ class PersonalGuideState(TypedDict):
     excursion_len: int
     current_exp_num: int
     user_description: str
+    messages: list
 
 def init(state: PersonalGuideState):
     defaults = {
@@ -78,10 +83,11 @@ def decide_next_move(state: PersonalGuideState):
     logger.info(f"Запрос пользователя: {state["user_input"]}")
 
     if state["user_input"] == "next":
-        state['current_exp_num'] += 1
-        if state["current_exp_num"] >= state["excursion_len"]:
+        current_exp_num = state["current_exp_num"] + 1
+        exp_id = list(state["exps_ids_description"].keys())[state["current_exp_num"]]
+        if current_exp_num >= state["excursion_len"]:
             return Command(goto=END)
-        return Command(goto="guide")
+        return Command(update={"exp_id": exp_id, 'current_exp_num': current_exp_num}, goto="guide")
     else:
         exp_id = list(state["exps_ids_description"].keys())[state["current_exp_num"]]
         return Command(update={"exp_id": exp_id}, goto="lead_to_exp")
@@ -93,16 +99,13 @@ def guide(state: PersonalGuideState):
     state["exp_id"] = list(state["exps_ids_description"].keys())[state["current_exp_num"]]
     exp_description = state['exps_ids_description'][state['exp_id']]
     answer = llm.invoke(DESCRIBE_EXP_PROMT(exp_description=exp_description)).dict()
-    answer['messages'] = state['agent_state']['messages'] + [AIMessage(answer['content'])]
-    state["agent_state"] = answer
-    logger.info('ответ ответа: ' + str(answer))
+    state["agent_state"] = {"messages": state['agent_state']['messages'] + [AIMessage(answer['content'])]}
+    logger.info('ответ гида: ' + str(answer))
     return state
 
 def user_input(state: PersonalGuideState):
     user_input = interrupt("waiting for user input")
     logger.info(f"Запрос пользователя: {user_input}")
-    print('!!!!')
-    print(state['agent_state'])
     if user_input:
         return {
             "user_input": user_input,
@@ -132,8 +135,7 @@ def generate_greeting(state: PersonalGuideState):
     logger.info(f"Названия экспонатов: {exp_names}")
     greeting = llm.invoke(GREETING_PROMPT(exps_names=str(exp_names))).dict()
     logger.info(f"Приветствие гида: {greeting}")
-    greeting['messages'] = state['agent_state']['messages'] + [AIMessage(greeting['content'])]
-    state["agent_state"] = greeting
+    state["agent_state"] = {"messages": state['agent_state']['messages'] + [AIMessage(greeting['content'])]}
     return state
 
 def lead_to_exp(state: PersonalGuideState, config: RunnableConfig):
@@ -143,10 +145,8 @@ def lead_to_exp(state: PersonalGuideState, config: RunnableConfig):
     if not state["exp_id"]:
         raise RuntimeError("No exp_id to lead to")
 
-    expert_state = guide_agent.invoke({'messages': state['agent_state']['messages']})
-    expert_state['messages'] = state['agent_state']['messages'] + [AIMessage(expert_state['content'])]
-    state['agent_state'] = expert_state
-    print('new state', state)
+    expert_state = llm.invoke(state['agent_state']['messages'] + [ANSWER_USER_QUESTION(state['exps_ids_description'][state['exp_id']], state['user_input'])]).dict()
+    state["agent_state"] = {"messages": state['agent_state']['messages'] + [AIMessage(expert_state['content'])]}
     return state
 
 

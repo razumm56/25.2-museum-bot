@@ -125,9 +125,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
     message = await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
-    personal_excursion_agent = PersonalExcursionAgent(user_description=Startup.style)
-    await state.update_data(agent=personal_excursion_agent)
-    description = await personal_excursion_agent.generate_description()
+    description = await (await state.get_data())["agent"].generate_description()
     format_id = await state.get_value('format_id')
     exhibit_id = 1
     await message.delete()
