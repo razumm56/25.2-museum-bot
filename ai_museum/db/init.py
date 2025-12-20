@@ -1,3 +1,4 @@
+from loguru import logger
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -18,6 +19,7 @@ db_connection_uri = (
 )
 psycopg_connection_uri = f"user={PG_USER} password={PG_PASSWORD} host={PG_HOST} port={PG_PORT} dbname={DB_NAME}"
 
+logger.info(f"connecting to postgres at {PG_HOST}:{PG_PORT}")
 engine = create_engine(db_connection_uri, echo=True)
 async_engine = create_async_engine(db_connection_uri, echo=True)
 
@@ -27,14 +29,18 @@ AsyncSessionLocal = async_sessionmaker(async_engine)
 
 
 def init_database():
+    # установка vector
     with engine.connect() as conn:
         _ = conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
+
+    # создание таблиц
+    Base.metadata.create_all(engine)
+    with engine.connect() as conn:
         _ = conn.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON exhibits "
                 + "USING hnsw (embedding vector_cosine_ops)"
             )
         )
-
         conn.commit()
-    Base.metadata.create_all(engine)

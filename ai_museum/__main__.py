@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher
 from loguru import logger
 
 from ai_museum.agents.infinity_excursion_agent.compiled_graphs import init_graphs
-from ai_museum.db.create_tabels import init_database
+from ai_museum.db.init import init_database
 from ai_museum.tgbot.handlers import main_router
 from ai_museum.utils import require_env_var
 
