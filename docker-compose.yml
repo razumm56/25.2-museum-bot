@@ -35,7 +35,7 @@ services:
 
   postgres:
     image: pgvector/pgvector:pg18-trixie
-    container_name: postgres_container  
+    container_name: postgres_container
     env_file:
       - .env
     environment:
@@ -52,7 +52,7 @@ services:
       - ai_museum_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PGUSER} -d ${DBNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5

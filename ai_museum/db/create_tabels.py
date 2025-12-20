@@ -27,14 +27,18 @@ AsyncSessionLocal = async_sessionmaker(async_engine)
 
 
 def init_database():
+    # установка vector
     with engine.connect() as conn:
         _ = conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
+
+    # создание таблиц
+    Base.metadata.create_all(engine)
+    with engine.connect() as conn:
         _ = conn.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON exhibits "
                 + "USING hnsw (embedding vector_cosine_ops)"
             )
         )
-
         conn.commit()
-    Base.metadata.create_all(engine)
