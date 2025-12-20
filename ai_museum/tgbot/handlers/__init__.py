@@ -1,10 +1,10 @@
 from aiogram import Router
-from ai_museum.tgbot.handlers.start_handlers import start_router
-from ai_museum.tgbot.handlers.finish_handlers import finish_router
-from ai_museum.tgbot.handlers.back_handlers import back_router
-from ai_museum.tgbot.handlers.personal_excursion import pers_route
-from ai_museum.tgbot.handlers.infinity_excursion import inf_router
-from ai_museum.tgbot.handlers.ready_excursion import router as ready_excursion_router
+from .start_handlers import start_router
+from .finish_handlers import finish_router
+from .back_handlers import back_router
+from .personal_excursion import pers_route
+from .infinity_excursion import inf_router
+from .ready_excursion import router as ready_excursion_router
 
 main_router = Router()
 

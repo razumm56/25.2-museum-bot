@@ -1,61 +1,40 @@
-import os
-import subprocess
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import create_engine, text
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy import String, text, select, func
-from pgvector.sqlalchemy import Vector
-from dotenv import load_dotenv
-from tenacity import retry_if_exception
 
-load_dotenv()
+from ai_museum.utils import require_env_var
 
-PG_HOST = os.getenv("PGHOST")
-PG_USER = os.getenv("PGUSER")
-PG_PORT = os.getenv("PGPORT")
-PG_PASSWORD = os.getenv("PGPASSWORD")
-DB_NAME = os.getenv("DBNAME")
+from .models import Base
+
+PG_HOST = require_env_var("PG_HOST")
+PG_USER = require_env_var("PG_USER")
+PG_PORT = require_env_var("PG_PORT")
+PG_PASSWORD = require_env_var("PG_PASSWORD")
+DB_NAME = require_env_var("PG_DB")
 
 
-engine = create_engine(f'postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{DB_NAME}', echo=True)
-engine.connect()
+db_connection_uri = (
+    f"postgresql+psycopg://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{DB_NAME}"
+)
+psycopg_connection_uri = f"user={PG_USER} password={PG_PASSWORD} host={PG_HOST} port={PG_PORT} dbname={DB_NAME}"
 
-Session = sessionmaker(engine)
-with engine.connect() as conn:
-    conn.execute(text('CREATE EXTENSION IF NOT EXISTS vector'))
-    conn.commit()
+engine = create_engine(db_connection_uri, echo=True)
+async_engine = create_async_engine(db_connection_uri, echo=True)
 
-class Base(DeclarativeBase):
-    pass
 
-# перенесём сюда модель для наглядности
-class Exhibit(Base):
-    __tablename__ = "exhibits"
+SessionLocal = sessionmaker(engine)
+AsyncSessionLocal = async_sessionmaker(async_engine)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String())
-    description: Mapped[str] = mapped_column(String())
-    image_url: Mapped[str] = mapped_column(String(), nullable=True)
-    embedding: Mapped[Vector] = mapped_column(Vector(1024))
 
-def create_db_and_tables() -> None:
+def init_database():
+    with engine.connect() as conn:
+        _ = conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        _ = conn.execute(
+            text(
+                "CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON exhibits "
+                + "USING hnsw (embedding vector_cosine_ops)"
+            )
+        )
+
+        conn.commit()
     Base.metadata.create_all(engine)
-    with Session() as session:
-        session.execute(text(
-            "CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON exhibits "
-            "USING hnsw (embedding vector_cosine_ops)"
-        ))
-        session.commit()
-
-def get_image_url(exhibit_id: int):
-    with Session() as session:
-        return session.execute(select(Exhibit.image_url).where(Exhibit.id == exhibit_id)).scalar()
-
-def get_description(exhibit_id: int):
-    with Session() as session:
-        return session.execute(select(Exhibit.description).where(Exhibit.id == exhibit_id)).scalar()
- 
-create_db_and_tables()
