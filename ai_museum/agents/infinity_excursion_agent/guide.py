@@ -15,7 +15,7 @@ from loguru import logger
 
 from ai_museum.models.llm import LLMFactory
 
-llm = LLMFactory.get_llm("openai")
+llm = LLMFactory.get_llm("gigachat")
 
 # агент
 
