@@ -1,20 +1,25 @@
-FROM python:3.12-slim
+FROM python:3.12-slim AS build
 
 WORKDIR /app
-
-RUN apt update && apt upgrade
-RUN apt install -y build-essential
 
 RUN pip install --no-cache-dir uv
 
 COPY pyproject.toml uv.lock ./
 
 ENV UV_PYTHON="python"
-RUN uv sync --locked --no-cache
 
-COPY ./.env .
-COPY ./ai_museum/ ./ai_museum
-COPY ./temp/ ./temp
-COPY ./data/ ./data
+RUN uv sync --frozen 
+
+COPY . .
+
+FROM build
+
+WORKDIR /app
+
+COPY --from=build . .
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+EXPOSE 8000
 
 CMD ["uv", "run" ,"-m" ,"ai_museum"]
