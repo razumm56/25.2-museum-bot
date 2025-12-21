@@ -8,18 +8,18 @@ COPY pyproject.toml uv.lock ./
 
 ENV UV_PYTHON="python"
 
-RUN uv sync --frozen 
+RUN uv sync --frozen --no-cache
 
-COPY . .
-
-FROM build
+FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY --from=build . .
+COPY --from=build /app/.venv /app/.venv/
 
 ENV PATH="/app/.venv/bin:$PATH"
 
+COPY . .
+
 EXPOSE 8000
 
-CMD ["uv", "run" ,"-m" ,"ai_museum"]
+CMD ["python" ,"-m" ,"ai_museum"]

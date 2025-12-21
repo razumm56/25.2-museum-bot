@@ -9,7 +9,7 @@ import uuid
 import sys
 from pathlib import Path
 from typing import List, Dict, Tuple, Set, Any, Optional
-from ai_museum.agents.infinity_excursion_agent.utils import search_similar_exhibits
+from ai_museum.db.functions import search_similar_exhibits
 
 
 class MuseumRouteBuilder:

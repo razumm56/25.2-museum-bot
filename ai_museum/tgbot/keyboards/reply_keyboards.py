@@ -16,3 +16,14 @@ restart_keyboard = ReplyKeyboardMarkup(keyboard=[[
         KeyboardButton(text='Начать заново')
     ]], resize_keyboard=True)
 
+guide_keyboard = ReplyKeyboardMarkup(keyboard=[[
+        KeyboardButton(text='Начать заново'),
+        KeyboardButton(text='Предложи экспонаты'),
+        KeyboardButton(text='Завершить экскурсию')
+    ]], resize_keyboard=True)
+
+expert_keyboard = ReplyKeyboardMarkup(keyboard=[[
+        KeyboardButton(text='Начать заново'),
+        KeyboardButton(text='Выход'),
+        KeyboardButton(text='Завершить экскурсию')
+    ]], resize_keyboard=True)
