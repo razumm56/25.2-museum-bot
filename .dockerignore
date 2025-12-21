@@ -1,4 +1,8 @@
-*.venv
-*.vscode
+.venv/
+.vscode/
+.git/
+
 *.nix
-*.git
+flake.lock
+.env
+

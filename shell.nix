@@ -11,6 +11,8 @@ pkgs.mkShell {
       with pkgs;
       [
         stdenv.cc.cc.lib
+        libGL
+        glib
       ]
     );
   };

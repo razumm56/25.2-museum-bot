@@ -1,3 +1,5 @@
+from ai_museum.scripts.route.generation_route import route_builder
+
 exhibits = {
     1: 'https://fotohosting.pro/i/exhibit1.hpzyl',
     2: 'https://fotohosting.pro/i/exhibit2.hpqDj',
@@ -6,5 +8,5 @@ exhibits = {
     5: 'https://fotohosting.pro/i/exhibit5.hpzsz'
 }
 
-async def generate_map(rout_type: str) -> str:
-    return 'temp/route_map.jpeg'
+def generate_map(exhibits) -> str:
+    return route_builder.generate_route(exhibits)

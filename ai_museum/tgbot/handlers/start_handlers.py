@@ -23,6 +23,8 @@ async def start(message: Message, state: FSMContext):
     
     logger.info(f"User {user_id} @{username} start bot")
 
+    await message.answer_sticker('CAACAgIAAxkBAAEQCglpRWQj_hnQku2ZLqsh34UbWgz79AACaYgAAoL32Una7zI7sXxWRTYE')
+
     await message.answer(
         "👋 Привет! Добро пожаловать в бот-гид по музеям!\n\n"
         "Я создан, чтобы помочь тебе познакомиться с искусством и найти то, что действительно затронет твою душу. "

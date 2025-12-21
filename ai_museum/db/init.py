@@ -41,7 +41,7 @@ def init_database():
         _ = conn.execute(
             text(
                 "CREATE INDEX IF NOT EXISTS embedding_hnsw_idx ON exhibits "
-                + "USING hnsw (embedding vector_cosine_ops)"
+                + "USING hnsw (embeddings vector_cosine_ops)"
             )
         )
         conn.commit()

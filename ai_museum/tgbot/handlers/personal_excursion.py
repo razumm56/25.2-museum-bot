@@ -8,8 +8,8 @@ from aiogram.types import CallbackQuery, FSInputFile, Message
 from ai_museum.db.functions import get_image_url
 from ai_museum.models.stt import STTManager
 from ai_museum.models.tts import TTS
+from ai_museum.interfaces.personal_excursion_agent import PersonalExcursionAgent
 from ai_museum.tgbot import keyboards
-from ai_museum.tgbot.handlers.finish_handlers import finish_excursion
 from ai_museum.tgbot.states.personal_excursion_states import (
     PersonalExcursionExcursion as Excursion,
 )
@@ -17,6 +17,7 @@ from ai_museum.tgbot.states.personal_excursion_states import (
     PersonalExcursionStartup as Startup,
 )
 from ai_museum.tgbot.utils import generate_map
+from ai_museum.db.functions import get_random_exhibits
 
 pers_route = Router()
 tts = TTS()
@@ -27,6 +28,10 @@ stt = STTManager()
 async def start(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
+    personal_excursion_agent = PersonalExcursionAgent()
+    await state.update_data(agent=personal_excursion_agent)
+    await personal_excursion_agent.start_excursion()
+    await bot.send_sticker(q.from_user.id, 'CAACAgIAAxkBAAEQCgtpRWVYIAN1QI2jPX7vX3-I8NOPrgACZIsAAs-z2EkWxL6b7C-qfjYE')
     await bot.send_message(q.from_user.id,
                            'Перед началом экскурсии, выбери в каком стиле ты хочешь её пройти — или в какой манере я буду рассказывать:\n'
                            'Например:\n\n'
@@ -52,6 +57,8 @@ async def set_style_voice(m: Message, state: FSMContext, bot: Bot):
         await m.answer('Сообщение не распознано')
         return
     os.remove(f"{m.voice.file_id}.ogg")
+    agent = await state.get_value('agent')
+    await agent.set_style(text)
     await state.update_data(style=text)
     await state.set_state(Startup.format)
     await m.answer('*Выбери удобный для себя формат экскурсии*\n\n'
@@ -64,68 +71,91 @@ async def set_style_voice(m: Message, state: FSMContext, bot: Bot):
 @pers_route.message(Startup.style)
 async def set_style(m: Message, state: FSMContext):
     await state.update_data(style=m.text)
-    await state.set_state(Startup.format)
+    agent = await state.get_value('agent')
+    await agent.set_style(m.text)
+    await state.update_data(agent=agent)
+    await state.set_state(Startup.style)
     await m.answer('*Выбери удобный для себя формат экскурсии*\n\n'
                    '📸 С изображениями экспонатов — увидишь фото каждого объекта\n'
                    '📝 Без изображений — описание в виде текста и аудио',
                    parse_mode=ParseMode.MARKDOWN,
                    reply_markup=keyboards.formats_keyboard)
-
-
-@pers_route.callback_query(Startup.format, F.data.regexp(r'^format \d$'))
-async def set_format(q: CallbackQuery, state: FSMContext, bot: Bot):
+                   
+@pers_route.callback_query(Startup.style, F.data.regexp(r'^format \d$'))
+async def set_style(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
     format_id = int(q.data.split()[-1])
     await state.update_data(format_id=format_id)
+    await state.set_state(Startup.format)
+    await bot.send_message(q.from_user.id, '*Выбери Количество экспонатов:*',
+                   parse_mode=ParseMode.MARKDOWN,
+                   reply_markup=keyboards.routes_keyboard)
+
+
+@pers_route.callback_query(Startup.format, F.data.regexp(r'^route \d+$'))
+async def set_format(q: CallbackQuery, state: FSMContext, bot: Bot):
+    await q.answer()
+    await q.message.delete()
+    count = int(q.data.split()[-1])
+    await (await state.get_data())["agent"].choose_excursion_len(count)
+    await bot.send_message(q.from_user.id, await ((await state.get_data())["agent"].send_greeting()), parse_mode=ParseMode.MARKDOWN)
+    await state.update_data(route_id=count)
     await bot.send_message(q.from_user.id, '*Карта вашего маршрута*\n\n'
                                            '➡️ Следуйте по порядку номеров экспонатов.\n'
                                            '📍 На карте они отмечены точками, а на полу — наклейками с такими же индексами,'
                                            'чтобы вы легко ориентировались в пространстве выставки',
                            parse_mode=ParseMode.MARKDOWN)
-    await bot.send_photo(q.from_user.id, 'https://fotohosting.pro/i/route-map.hpUXN')
-    await state.update_data(route='personal', exhibit_id=1)
+    exhibits = get_random_exhibits(count)
+    await state.update_data(exhibit_number=1, route=exhibits)
+    await bot.send_photo(q.from_user.id, FSInputFile(generate_map(exhibits)))
     await bot.send_message(q.from_user.id, '*🎧 Экскурсия содержит аудио*\n\n'
                                            '*Вы готовы отправиться?*',
                            reply_markup=keyboards.user_ready, parse_mode=ParseMode.MARKDOWN)
+
 
 @pers_route.callback_query(Startup.format, F.data == 'user ready')
 async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
     await state.set_state(Excursion.exhibit)
+    await bot.send_sticker(q.from_user.id, 'CAACAgIAAxkBAAEQCg9pRWXBQ5NMe7grkKGc2XDzAt6WZAAC_pcAAhGt2UmHpb2EwHweSDYE')
     message = await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
-    description = await llm.generate_description(exhibit_id=1)
+    description = await (await state.get_data())["agent"].generate_description()
     format_id = await state.get_value('format_id')
     await message.delete()
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, get_image_url(1), caption=description[:1024], reply_markup=keyboards.next_exhibit)
+        await bot.send_photo(q.from_user.id, get_image_url(1), caption=description, reply_markup=keyboards.next_exhibit)
     else:
-        await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
+        await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit, parse_mode=ParseMode.MARKDOWN)
 
 
 @pers_route.callback_query(Excursion.exhibit, F.data == 'next exhibit')
 async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await q.message.delete()
-    exhibit_id = await state.get_value('exhibit_id')
-    if exhibit_id == 5:
-        await finish_excursion(q, bot)
-        return
-    exhibit_id += 1
-    await state.update_data(exhibit_id=exhibit_id)
     message = await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
-    description = await llm.generate_description(exhibit_id=exhibit_id)
+    description = await (await state.get_data())["agent"].generate_description()
     format_id = await state.get_value('format_id')
+    exhibit_number = await state.get_value('exhibit_number')
+    route = await state.get_value('route')
+    exhibit_number += 1
+    await state.update_data(exhibit_number=exhibit_number)
     await message.delete()
+    if exhibit_number > len(route):
+        await state.clear()
+        await bot.send_message(q.from_user.id, 'Экскурсия завершена',
+                               reply_markup=keyboards.keyboard_start_after_finish_excursion)
+        return
     if format_id == 1:
-        await bot.send_photo(q.from_user.id, get_image_url(exhibit_id), caption=description[:1024], reply_markup=keyboards.next_exhibit)
+        await bot.send_photo(q.from_user.id, get_image_url(route[exhibit_number - 1].id), caption=description[:1024], reply_markup=keyboards.next_exhibit, parse_mode=ParseMode.MARKDOWN)
     else:
-        await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit)
+        await bot.send_message(q.from_user.id, description, reply_markup=keyboards.next_exhibit, parse_mode=ParseMode.MARKDOWN)
 
 
 @pers_route.message(Excursion.exhibit, F.voice)
 async def voice_question(m: Message, state: FSMContext, bot: Bot):
+    await m.answer_sticker('CAACAgIAAxkBAAEQCg1pRWWZ_oZyP7pXzo6NchtZCQvzowACI4kAAjDM2Em8hHBJ4OGXMzYE')
     file = await bot.get_file(m.voice.file_id)
     await bot.download_file(file.file_path, f"{m.voice.file_id}.ogg")
     text = await stt.transcribe_audio(f"{m.voice.file_id}.ogg")
@@ -133,14 +163,15 @@ async def voice_question(m: Message, state: FSMContext, bot: Bot):
         await m.answer('Сообщение не распознано')
         return
     os.remove(f"{m.voice.file_id}.ogg")
-    answer = await llm.generate_answer(text)
-    await m.answer(answer)
+    answer = (await (await state.get_data())["agent"].generate_answer(question=text))
+    await m.answer(answer, parse_mode=ParseMode.MARKDOWN)
 
 
 
 @pers_route.message(Excursion.exhibit)
 async def exhibit(m: Message, state: FSMContext):
+    await m.answer_sticker('CAACAgIAAxkBAAEQCg1pRWWZ_oZyP7pXzo6NchtZCQvzowACI4kAAjDM2Em8hHBJ4OGXMzYE')
     await m.answer('Обрабатываю ответ на вопрос... Подождите немного!⏳')
-    answer = await llm.generate_answer(m.text)
-    await m.answer(answer, reply_markup=keyboards.next_exhibit)
+    answer = (await (await state.get_data())["agent"].generate_answer(question=m.text))
+    await m.answer(answer, reply_markup=keyboards.next_exhibit, parse_mode=ParseMode.MARKDOWN)
 

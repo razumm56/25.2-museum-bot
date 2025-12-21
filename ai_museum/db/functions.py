@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.sql import select
 
 from ai_museum.models.llm import LLMFactory
@@ -15,8 +16,18 @@ def get_image_url(exhibit_id: int):
 def get_description(exhibit_id: int):
     with SessionLocal() as session:
         return session.execute(
-            select(Exhibit.description).where(Exhibit.id == exhibit_id)
+            select(Exhibit.short_description).where(Exhibit.id == exhibit_id)
         ).scalar()
+
+
+def get_random_exhibits(count: int) -> list[type[Exhibit]]:
+    with SessionLocal() as session:
+        return [
+            x[0]
+            for x in session.execute(
+                select(Exhibit).order_by(func.random()).limit(count)
+            ).all()
+        ]
 
 
 async def create_guide_session(tg_user_id: int, id: str | None = None) -> GuideSession:
@@ -76,7 +87,22 @@ def get_embedding(text: str) -> list[float]:
     return embedder.embed_query(text)
 
 
-async def search_similar_exhibits(query: str, k: int = 3) -> list[Exhibit]:
+def search_similar_exhibits(query: str, k: int = 3) -> list[Exhibit]:
+    """Поиск похожих экспонатов по запросу"""
+    query_embedding = get_embedding(query)
+
+    with SessionLocal() as session:
+        # Поиск по косинусной близости
+        stmt = session.execute(
+            select(Exhibit)
+            .order_by(Exhibit.embeddings.cosine_distance(query_embedding))
+            .limit(k)
+        )
+        results = stmt.scalars().all()
+        return list(results)
+
+
+async def asearch_similar_exhibits(query: str, k: int = 3) -> list[Exhibit]:
     """Поиск похожих экспонатов по запросу"""
     query_embedding = get_embedding(query)
 
@@ -84,7 +110,7 @@ async def search_similar_exhibits(query: str, k: int = 3) -> list[Exhibit]:
         # Поиск по косинусной близости
         stmt = await session.execute(
             select(Exhibit)
-            .order_by(Exhibit.embedding.cosine_distance(query_embedding))
+            .order_by(Exhibit.embeddings.cosine_distance(query_embedding))
             .limit(k)
         )
         results = stmt.scalars().all()

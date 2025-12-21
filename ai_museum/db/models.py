@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     String,
+    JSON,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -23,9 +24,12 @@ class Exhibit(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String())
-    description: Mapped[str] = mapped_column(String())
+    text: Mapped[str] = mapped_column(String())
+    short_description: Mapped[str] = mapped_column(String())
+    nodes: Mapped[JSON] = mapped_column(JSON(), nullable=True)
     image_url: Mapped[str] = mapped_column(String(), nullable=True)
-    embedding: Mapped[Vector] = mapped_column(Vector(1024))
+    embeddings: Mapped[Vector] = mapped_column(Vector(1024))
+    image: Mapped[str] = mapped_column(String(), nullable=True)
 
 
 @final

@@ -26,7 +26,7 @@ from ai_museum.db.functions import (
     create_guide_session,
     get_user_chat_history,
     get_user_exhibit_chat_history,
-    search_similar_exhibits,
+    asearch_similar_exhibits,
 )
 from ai_museum.db.models import Exhibit
 from ai_museum.models.stt import STTManager
@@ -228,7 +228,7 @@ async def guide_lead(m: Message, state: FSMContext):
         elif isinstance(message, AIMessage):
             text += f"AI: {message.content};"
 
-    exhibits = await search_similar_exhibits(text[:500], k=5)
+    exhibits = await asearch_similar_exhibits(text[:500], k=5)
 
     _ = await state.update_data(
         guide_id=guide_id,

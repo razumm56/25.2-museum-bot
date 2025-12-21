@@ -54,7 +54,7 @@ async def set_route(q: CallbackQuery, state: FSMContext, bot: Bot):
     await q.answer()
     await state.set_state(Excursion.exhibit)
     await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
-    description = await llm.generate_description(exhibit_id=1)
+    description = ""
     format_id = await state.get_value('format_id')
     if format_id == 1:
         await bot.send_photo(q.from_user.id, get_image_url(1), caption=description[:1024], reply_markup=keyboards.next_exhibit)
@@ -73,7 +73,7 @@ async def send_next_exhibit(q: CallbackQuery, state: FSMContext, bot: Bot):
     exhibit_id += 1
     await state.update_data(exhibit_id=exhibit_id)
     message = await bot.send_message(q.from_user.id, 'Обрабатываю описание экспоната... Подождите немного!⏳')
-    description = await llm.generate_description(exhibit_id=exhibit_id)
+    description = ""
     format_id = await state.get_value('format_id')
     await message.delete()
     if format_id == 1:
@@ -91,12 +91,12 @@ async def voice_question(m: Message, state: FSMContext, bot: Bot):
         await m.answer('Сообщение не распознано')
         return
     os.remove(f"{m.voice.file_id}.ogg")
-    answer = await llm.generate_answer(text)
+    answer = ""
     await m.answer(answer)
 
 
 @router.message(Excursion.exhibit)
 async def exhibit(m: Message, state: FSMContext):
     await m.answer('Обрабатываю ответ на вопрос... Подождите немного!⏳')
-    answer = await llm.generate_answer(m.text)
+    answer = ""
     await m.answer(answer, reply_markup=keyboards.next_exhibit)
