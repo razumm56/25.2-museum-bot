@@ -15,11 +15,11 @@ from tenacity import retry_if_exception
 
 load_dotenv()
 
-PG_HOST = os.getenv("PGHOST")
-PG_USER = os.getenv("PGUSER")
-PG_PORT = os.getenv("PGPORT")
-PG_PASSWORD = os.getenv("PGPASSWORD")
-DB_NAME = os.getenv("DBNAME")
+PG_HOST = os.getenv("PG_HOST")
+PG_USER = os.getenv("PG_USER")
+PG_PORT = os.getenv("PG_PORT")
+PG_PASSWORD = os.getenv("PG_PASSWORD")
+DB_NAME = os.getenv("PG_DB")
 
 
 engine = create_engine(f'postgresql://{PG_USER}:{PG_PASSWORD}@{PG_HOST}:{PG_PORT}/{DB_NAME}', echo=True)
