@@ -16,7 +16,6 @@ dependencies = [
     "pandas>=2.3.3",
     "pgvector>=0.4.1",
     "psycopg-binary>=3.2.13",
-    "psycopg2-binary>=2.9.11",
     "ruaccent>=1.5.8.3",
     "scipy>=1.16.3",
     "silero>=0.5.1",
@@ -50,3 +49,4 @@ torch = [
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
+

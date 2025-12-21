@@ -1,8 +1,10 @@
+from typing import final
 from aiogram.fsm.state import State, StatesGroup
 
-class InfinityExcursionStartup(StatesGroup):
-    format = State()
 
+@final
 class InfinityExcursion(StatesGroup):
-    exhibit = State()
-    fff = State()
+    guide_wait_user_reply = State()
+    guide_chat = State()
+
+    expert_chat = State()

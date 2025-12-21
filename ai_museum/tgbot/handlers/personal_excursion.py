@@ -5,7 +5,7 @@ from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
-from ai_museum.db.create_tabels import get_image_url
+from ai_museum.db.functions import get_image_url
 from ai_museum.models.stt import STTManager
 from ai_museum.models.tts import TTS
 from ai_museum.interfaces.personal_excursion_agent import PersonalExcursionAgent
@@ -17,7 +17,7 @@ from ai_museum.tgbot.states.personal_excursion_states import (
     PersonalExcursionStartup as Startup,
 )
 from ai_museum.tgbot.utils import generate_map
-from ai_museum.db.create_tabels import get_random_exhibits
+from ai_museum.db.functions import get_random_exhibits
 
 pers_route = Router()
 tts = TTS()

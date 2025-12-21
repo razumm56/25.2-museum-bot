@@ -64,6 +64,14 @@ user_ready = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text='Да, я готов(а)', callback_data='user ready')
     ]])
 
+guide_continue_prompt = InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text="Да, конечно", callback_data="guide_continue_chat"),
+    InlineKeyboardButton(text="Нет, хочу начать новый", callback_data="guide_new_chat")
+]])
+guide_start_ready = InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text="Да, я готов(а)", callback_data="guide_proceed_start")
+]])
+
 routes_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text='5', callback_data='route 5'),
     ], [

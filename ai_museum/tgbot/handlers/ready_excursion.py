@@ -5,8 +5,7 @@ from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message
 
-from ai_museum.db.create_tabels import get_image_url
-# from ai_museum.models.llm import LLM
+from ai_museum.db.functions import get_image_url
 from ai_museum.models.stt import STTManager
 from ai_museum.models.tts import TTS
 from ai_museum.tgbot import keyboards
@@ -20,7 +19,6 @@ from ai_museum.tgbot.states.ready_excursion_states import (
 from ai_museum.tgbot.utils import exhibits
 
 router = Router()
-# llm = LLM()
 tts = TTS()
 stt = STTManager()
 

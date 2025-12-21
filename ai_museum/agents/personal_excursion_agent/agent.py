@@ -12,9 +12,9 @@ from pydantic import BaseModel, Field
 
 from loguru import logger
 
-from ai_museum.agents.llm import LLMFactory
+from ai_museum.models.llm import LLMFactory
 from ai_museum.agents.prompts import ACTION_PICKER_PROMPT, GREETING_PROMPT, ANSWER_USER_QUESTION, DESCRIBE_EXP_PROMT
-from ai_museum.agents.utils import search_similar_exhibits, get_exps_names_by_ids
+from ai_museum.db.functions import search_similar_exhibits
 from ai_museum.scripts.route.generation_route import route_builder
 
 #TODO удалить настройку логера

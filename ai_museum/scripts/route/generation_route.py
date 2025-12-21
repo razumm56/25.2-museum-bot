@@ -10,7 +10,7 @@ import uuid
 import sys
 from pathlib import Path
 from typing import List, Dict, Tuple, Set, Any, Optional
-from ai_museum.db.create_tabels import Exhibit
+from ai_museum.db.models import Exhibit
 
 
 class MuseumRouteBuilder:

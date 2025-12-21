@@ -10,7 +10,7 @@ ENV UV_PYTHON="python"
 ENV UV_LINK_MODE=copy
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-cache
+    uv sync --frozen
 
 FROM python:3.12-slim
 

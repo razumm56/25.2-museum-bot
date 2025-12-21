@@ -6,7 +6,7 @@ from langgraph.graph.state import Command
 from loguru import logger
 
 from ai_museum.agents.personal_excursion_agent.agent import PersonalGuideState, guide_app, guide_graph
-from ai_museum.db.create_tabels import get_description
+from ai_museum.db.functions import get_description
 
 
 class PersonalExcursionAgent:
