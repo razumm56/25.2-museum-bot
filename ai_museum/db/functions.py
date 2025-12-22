@@ -30,6 +30,13 @@ def get_random_exhibits(count: int) -> list[type[Exhibit]]:
         ]
 
 
+def get_exhibit_name(exhibit_id: int):
+    with SessionLocal() as session:
+        return session.execute(
+            select(Exhibit.name).where(Exhibit.id == exhibit_id)
+        ).scalar()
+
+
 async def create_guide_session(tg_user_id: int, id: str | None = None) -> GuideSession:
     async with AsyncSessionLocal() as session:
         guide_obj = GuideSession(id=id, tg_user_id=tg_user_id)

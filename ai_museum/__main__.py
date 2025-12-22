@@ -20,6 +20,7 @@ async def main():
 
     _ = await bot.delete_webhook(drop_pending_updates=True)
     try:
+        print("start_polling")
         await dp.start_polling(bot)
     except Exception as e:
         logger.exception(e)

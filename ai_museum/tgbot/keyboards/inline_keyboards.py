@@ -1,5 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from ai_museum.db.models import Exhibit
+
 # Инлайн-кнопка для редактирования профиля
 button_excursion_with_photo = InlineKeyboardButton(
     text='C изображениями',
@@ -66,11 +68,18 @@ user_ready = InlineKeyboardMarkup(inline_keyboard=[[
 
 guide_continue_prompt = InlineKeyboardMarkup(inline_keyboard=[[
     InlineKeyboardButton(text="Да, конечно", callback_data="guide_continue_chat"),
-    InlineKeyboardButton(text="Нет, хочу начать новый", callback_data="guide_new_chat")
+    InlineKeyboardButton(text="Нет, хочу начать новую", callback_data="guide_new_chat")
 ]])
 guide_start_ready = InlineKeyboardMarkup(inline_keyboard=[[
     InlineKeyboardButton(text="Да, я готов(а)", callback_data="guide_proceed_start")
 ]])
+
+def get_exhibits_keyboard(exhibits: list[Exhibit]) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=exhibit.name, callback_data=f"choose_exhibit:{exhibit.id}",)
+            ] for exhibit in exhibits])
 
 routes_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text='5', callback_data='route 5'),
