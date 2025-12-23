@@ -1,4 +1,3 @@
-import asyncio
 from typing import NotRequired, TypedDict
 
 from langchain.agents import AgentState, create_agent
@@ -6,14 +5,13 @@ from langchain_core.messages import (
     AnyMessage,
     HumanMessage,
 )
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, StateGraph
-from langgraph.graph.state import Command, RunnableConfig
 from langgraph.types import interrupt
-from langchain_core.tools import tool
 from loguru import logger
 
 from ai_museum.models.llm import LLMFactory
+
+from .tools import web_search, clean_message
 
 llm = LLMFactory.get_llm("gigachat")
 
@@ -38,14 +36,16 @@ class EmptyContext(TypedDict):
 
 
 SYSTEM_PROMPT = """
-Ты виртуальный экскурсовод в музее. Ты выступаешь в роли проводника к экспонатам.
+Ты виртуальный экскурсовод в музее И. Я. Словцова. Ты выступаешь в роли проводника к экспонатам.
+ВАЖНО! НЕ ВЫЗЫВАЙ web_search НЕСКОЛЬКО РАЗ
 """
 guide_agent = create_agent(
     llm,
-    tools=[],
+    tools=[web_search],
     system_prompt=SYSTEM_PROMPT,
     state_schema=AgentState,
     context_schema=EmptyContext,
+    debug=True,
 )
 
 
@@ -65,7 +65,7 @@ class InitGuideState(TypedDict):
 
 
 def init(state: InitGuideState | GuideState) -> GuideState:
-    # logget.info("guide_graph: инит")
+    logger.debug("guide_graph: init")
     return {
         "user_id": state.get("user_id", ""),
         "user_input": state.get("user_input", ""),
@@ -75,15 +75,19 @@ def init(state: InitGuideState | GuideState) -> GuideState:
 
 
 async def guide_reply(state: GuideState):
-    # logger.info("guide_graph: генерация ответа гида")
+    logger.debug("guide_graph: guide_reply")
     response = await guide_agent.ainvoke({"messages": state["messages"]})  # pyright: ignore[reportArgumentType]
 
-    return {"messages": response.get("messages", [])}
+    messages = response.get("messages")
+    if messages:
+        messages[-1] = clean_message(messages[-1])
+
+    return {"messages": messages}
 
 
 def user_input(state: GuideState):
     user_input = interrupt("guide waiting for user input")
-    # logger.info("guide_graph: принято сообщение от пользователя")
+    logger.debug("guide_graph: got user input")
 
     return {
         "messages": state["messages"] + [HumanMessage(user_input)],
@@ -101,22 +105,3 @@ guide_graph = (
     .add_edge("guide_reply", "user_input")
     .add_edge("user_input", "guide_reply")
 )
-
-
-if __name__ == "__main__":
-    checkpointer = MemorySaver()
-    guide_app = guide_graph.compile(checkpointer=checkpointer)
-
-    async def main(guide_app):
-        config: RunnableConfig = {"configurable": {"thread_id": "1"}}
-
-        state: InitGuideState = {}
-        guide_state = guide_app.invoke(state, config=config)
-
-        while "__interrupt__" in guide_state:
-            resume_input = input("Ввод:")
-            guide_state = await guide_app.ainvoke(
-                Command(resume=resume_input), config=config
-            )
-
-    asyncio.run(main(guide_app))

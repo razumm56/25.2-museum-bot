@@ -3,20 +3,16 @@ from typing import NotRequired, Required, TypedDict
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware.types import ModelRequest, dynamic_prompt
 from langchain_core.messages import AnyMessage, HumanMessage
-from langchain_core.tools import tool
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph
 from langgraph.graph.state import (
-    END,
     START,
-    Command,
-    CompiledStateGraph,
-    RunnableConfig,
 )
 from langgraph.types import interrupt
 from loguru import logger
 
 from ai_museum.models.llm import LLMFactory
+
+from .tools import clean_message, web_search
 
 llm = LLMFactory.get_llm("gigachat")
 
@@ -24,19 +20,24 @@ llm = LLMFactory.get_llm("gigachat")
 # агент эксперта
 class AgentContext(TypedDict):
     exp_id: str
+    exhibit_info: str
 
 
 @dynamic_prompt
 def agent_prompt(request: ModelRequest) -> str:
     exp_id = request.runtime.context.get("exp_id", "None")
-    return f"Ты эксперт по конкретному экспонату в российском музее {exp_id}"
+    exhibit_info = request.runtime.context.get("exhibit_info", "")
 
+    prompt = (
+        "Ты эксперт по конкретному экспонату в музее И. Я. Словцова. Отвечай на вопросы пользователя, касающиеся ТОЛЬКО конкретного экспоната или текущего музея.\n"
+        "ВАЖНО! НЕ ВЫЗЫВАЙ web_search НЕСКОЛЬКО РАЗ \n"
+    )
+    if exhibit_info:
+        prompt += f"Информация об экспонате:\n{exhibit_info}\n"
+    else:
+        prompt += f"ID экспоната: {exp_id}\n"
 
-# TODO: этот тул не работает, нужно придумать тулом менять стейт тг бота
-@tool
-def end_excursion():
-    """Завершает экскурсию"""
-    return Command(goto=END), {"status": "ok"}
+    return prompt
 
 
 agent = create_agent(
@@ -51,37 +52,48 @@ agent = create_agent(
 class ExpertState(TypedDict):
     messages: list[AnyMessage]
     exp_id: int
+    exhibit_info: str
 
 
 class InitExpertState(TypedDict):
     messages: NotRequired[list[AnyMessage]]
     exp_id: Required[int]
+    exhibit_info: Required[str]
 
 
 def init(state: InitExpertState):
-    # logger.info("expert_graph: инит")
+    logger.debug("expert_graph: init")
     defaults = {
         "messages": [],
         "exp_id": state["exp_id"],
+        "exhibit_info": state.get("exhibit_info", ""),
     }
     for key, value in defaults.items():
         state[key] = state.get(key, value)
     return state
 
 
-async def describe(state: ExpertState):
-    # logger.info("expert_graph: генерация ответа эксперта")
+async def expert_reply(state: ExpertState):
+    logger.debug("expert_graph: expert_reply")
     response = await agent.ainvoke(
         {"messages": state["messages"]},  # pyright: ignore[reportArgumentType]
-        context={"exp_id": state["exp_id"]},
+        context={
+            "exp_id": str(state["exp_id"]),
+            "exhibit_info": state.get("exhibit_info", ""),
+        },
     )
 
-    return {"messages": response.get("messages", [])}
+    messages = response.get("messages")
+    if messages:
+        messages[-1] = clean_message(messages[-1])
+
+    return {"messages": messages}
 
 
 def user_input(state: ExpertState):
     user_input = interrupt("waiting for user input")
-    # logger.info("expert_graph: ввод юзера")
+    logger.debug("expert_graph: got user input")
+
     return {
         "messages": state["messages"] + [HumanMessage(user_input)],
         "user_input": user_input,
@@ -91,46 +103,10 @@ def user_input(state: ExpertState):
 expert_graph = (
     StateGraph(state_schema=ExpertState, input_schema=InitExpertState)
     .add_node(init)
-    .add_node(describe)
+    .add_node(expert_reply)
     .add_node(user_input)
     .add_edge(START, "init")
     .add_edge("init", "user_input")
-    .add_edge("user_input", "describe")
-    .add_edge("describe", "user_input")
+    .add_edge("user_input", "expert_reply")
+    .add_edge("expert_reply", "user_input")
 )
-
-
-#
-def run_graph_chat(
-    graph_app: CompiledStateGraph, thread: str, init_state, user_input: str
-):
-    config: RunnableConfig = {"configurable": {"thread_id": thread}}
-
-    graph_snapshot = graph_app.get_state(config)
-    if not graph_snapshot.next:  # initialize graph till interrupt
-        _ = expert_app.invoke(init_state, config=config)
-
-    guide_state = expert_app.invoke(Command(resume=user_input), config=config)
-
-    return guide_state
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    subgraph_checkpointer = MemorySaver()
-    expert_app = expert_graph.compile(subgraph_checkpointer)
-
-    async def main(expert_app):
-        config: RunnableConfig = {"configurable": {"thread_id": "1"}}
-
-        state: InitExpertState = {"exp_id": 123}
-        guide_state = expert_app.invoke(state, config=config)
-
-        while "__interrupt__" in guide_state:
-            resume_input = input("Ввод:")
-            guide_state = await expert_app.ainvoke(
-                Command(resume=resume_input), config=config
-            )
-
-    asyncio.run(main(expert_app))
