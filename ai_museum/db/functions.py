@@ -37,6 +37,11 @@ def get_exhibit_name(exhibit_id: int):
         ).scalar()
 
 
+def get_exhibit_by_id(exhibit_id: int) -> Exhibit | None:
+    with SessionLocal() as session:
+        return session.get(Exhibit, exhibit_id)
+
+
 async def create_guide_session(tg_user_id: int, id: str | None = None) -> GuideSession:
     async with AsyncSessionLocal() as session:
         guide_obj = GuideSession(id=id, tg_user_id=tg_user_id)

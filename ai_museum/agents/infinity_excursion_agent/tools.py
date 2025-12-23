@@ -1,7 +1,9 @@
-from langchain_core.tools import tool
+import re
 
+from langchain_core.messages import AnyMessage
 import requests
 from bs4 import BeautifulSoup
+from langchain_core.tools import tool
 
 
 @tool
@@ -46,3 +48,13 @@ def web_search(query: str, k: int = 3) -> str:
         out_lines.append(f"{idx}. {title}\n{snippet}\n{href}")
 
     return "\n\n".join(out_lines)
+
+
+def clean_message(message: AnyMessage):
+    text = message.text
+
+    clean_text = re.sub(r" ?\[?sources=(:?\[(:?.*)\]|собственные знания)\]?", "", text)
+    clean_text = re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', clean_text)
+    message.content = clean_text
+
+    return message

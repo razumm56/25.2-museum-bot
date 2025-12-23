@@ -1,4 +1,3 @@
-import asyncio
 from typing import NotRequired, TypedDict
 
 from langchain.agents import AgentState, create_agent
@@ -6,17 +5,13 @@ from langchain_core.messages import (
     AnyMessage,
     HumanMessage,
 )
-from langgraph.checkpoint.base import BaseCheckpointSaver
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, StateGraph
-from langgraph.graph.state import Command, RunnableConfig
 from langgraph.types import interrupt
 from loguru import logger
 
-from ai_museum.agents.infinity_excursion_agent import compiled_graphs
-from ai_museum.db.functions import create_guide_session
 from ai_museum.models.llm import LLMFactory
-from .tools import web_search
+
+from .tools import web_search, clean_message
 
 llm = LLMFactory.get_llm("gigachat")
 
@@ -41,7 +36,8 @@ class EmptyContext(TypedDict):
 
 
 SYSTEM_PROMPT = """
-Ты виртуальный экскурсовод в музее Словцова. Ты выступаешь в роли проводника к экспонатам.
+Ты виртуальный экскурсовод в музее И. Я. Словцова. Ты выступаешь в роли проводника к экспонатам.
+ВАЖНО! НЕ ВЫЗЫВАЙ web_search НЕСКОЛЬКО РАЗ
 """
 guide_agent = create_agent(
     llm,
@@ -49,6 +45,7 @@ guide_agent = create_agent(
     system_prompt=SYSTEM_PROMPT,
     state_schema=AgentState,
     context_schema=EmptyContext,
+    debug=True,
 )
 
 
@@ -68,7 +65,7 @@ class InitGuideState(TypedDict):
 
 
 def init(state: InitGuideState | GuideState) -> GuideState:
-    logger.info("guide_graph: init")
+    logger.debug("guide_graph: init")
     return {
         "user_id": state.get("user_id", ""),
         "user_input": state.get("user_input", ""),
@@ -78,15 +75,19 @@ def init(state: InitGuideState | GuideState) -> GuideState:
 
 
 async def guide_reply(state: GuideState):
-    logger.info("guide_graph: guide_reply")
+    logger.debug("guide_graph: guide_reply")
     response = await guide_agent.ainvoke({"messages": state["messages"]})  # pyright: ignore[reportArgumentType]
 
-    return {"messages": response.get("messages", [])}
+    messages = response.get("messages")
+    if messages:
+        messages[-1] = clean_message(messages[-1])
+
+    return {"messages": messages}
 
 
 def user_input(state: GuideState):
     user_input = interrupt("guide waiting for user input")
-    logger.info("guide_graph: got user input")
+    logger.debug("guide_graph: got user input")
 
     return {
         "messages": state["messages"] + [HumanMessage(user_input)],
@@ -104,30 +105,3 @@ guide_graph = (
     .add_edge("guide_reply", "user_input")
     .add_edge("user_input", "guide_reply")
 )
-
-
-async def guide_init(user_id: int) -> str:
-    logger.info(f"guide_graph: init for user {user_id}")
-    guide_obj = await create_guide_session(user_id)
-    guide_id = str(guide_obj.id)
-
-    config: RunnableConfig = {"configurable": {"thread_id": guide_id}}
-    if isinstance(compiled_graphs.guide_app.checkpointer, BaseCheckpointSaver):
-        _ = await compiled_graphs.guide_app.checkpointer.adelete_thread(guide_id)
-
-    init_state = InitGuideState()
-    _ = await compiled_graphs.guide_app.ainvoke(init_state, config=config)
-
-    return guide_id
-
-
-async def guide_invoke(guide_id: str, model_prompt: str):
-    logger.info(f"guide_graph: invoke for guide_id:{guide_id}")
-    config: RunnableConfig = {"configurable": {"thread_id": guide_id}}
-
-    response = await compiled_graphs.guide_app.ainvoke(
-        Command(resume=model_prompt), config=config
-    )
-    last_ai_message: str = response["messages"][-1].content
-
-    return "Ответ путеводителя:\n" + last_ai_message

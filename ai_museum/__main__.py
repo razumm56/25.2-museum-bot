@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 from aiogram import Bot, Dispatcher
 from loguru import logger
@@ -13,7 +14,6 @@ async def main():
     bot = Bot(require_env_var("TELEGRAM_TOKEN"))
     dp = Dispatcher()
 
-    init_database()
     await init_graphs()
 
     _ = dp.include_router(main_router)
@@ -25,5 +25,9 @@ async def main():
     except Exception as e:
         logger.exception(e)
 
+
+if len(sys.argv) > 1 and sys.argv[1] == "init_database":
+    init_database()
+    sys.exit(0)
 
 asyncio.run(main())

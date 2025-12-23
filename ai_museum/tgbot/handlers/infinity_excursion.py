@@ -7,24 +7,31 @@ from aiogram.enums.parse_mode import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
+    FSInputFile,
+    InputMediaPhoto,
     Message,
     User,
     Voice,
 )
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
+from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph.state import RunnableConfig
+from langgraph.types import Command
 from loguru import logger
 
 from ai_museum.agents.infinity_excursion_agent import compiled_graphs
-from ai_museum.agents.infinity_excursion_agent.expert import (
-    expert_init,
-    expert_invoke,
-)
-from ai_museum.agents.infinity_excursion_agent.guide import guide_init, guide_invoke
+from ai_museum.agents.infinity_excursion_agent.expert import InitExpertState
+from ai_museum.agents.infinity_excursion_agent.guide import InitGuideState
 from ai_museum.db.functions import (
+    create_expert_session,
+    create_guide_session,
+    get_description,
+    get_exhibit_name,
     get_user_chat_history,
     get_user_exhibit_chat_history,
     asearch_similar_exhibits,
+    get_image_url,
+    get_exhibit_by_id,
 )
 from ai_museum.models.llm import LLMFactory
 from ai_museum.models.stt import STTManager
@@ -33,6 +40,7 @@ from ai_museum.tgbot import keyboards
 from ai_museum.tgbot.keyboards.inline_keyboards import get_exhibits_keyboard
 from ai_museum.tgbot.states.infinity_excursion_states import InfinityExcursion
 from ai_museum.utils import require_var_type
+from ai_museum.tgbot.utils import generate_map
 
 
 async def summarize_expert_session(messages: list[AnyMessage]) -> str:
@@ -59,6 +67,34 @@ async def summarize_expert_session(messages: list[AnyMessage]) -> str:
     return response.content
 
 
+async def guide_init(user_id: int) -> str:
+    logger.info(f"guide_graph: init for user {user_id}")
+    guide_obj = await create_guide_session(user_id)
+    guide_id = str(guide_obj.id)
+
+    config: RunnableConfig = {"configurable": {"thread_id": guide_id}}
+    if isinstance(compiled_graphs.guide_app.checkpointer, BaseCheckpointSaver):
+        _ = await compiled_graphs.guide_app.checkpointer.adelete_thread(guide_id)
+
+    init_state = InitGuideState()
+    _ = await compiled_graphs.guide_app.ainvoke(init_state, config=config)
+
+    return guide_id
+
+
+async def guide_invoke(guide_id: str, model_prompt: str):
+    logger.info(f"guide_graph: invoke for guide_id:{guide_id}")
+    config: RunnableConfig = {"configurable": {"thread_id": guide_id}}
+
+    logger.debug(f"guide_graph: invoke with {model_prompt}")
+    response = await compiled_graphs.guide_app.ainvoke(
+        Command(resume=model_prompt), config=config
+    )
+    last_ai_message: str = response["messages"][-1].content
+
+    return "Ответ путеводителя:\n" + last_ai_message
+
+
 async def guide_reply(bot: Bot, user_id: int, guide_id: str, prompt: str):
     logger.debug(f"{user_id} at guide_reply")
     wait_message = await bot.send_message(
@@ -70,9 +106,48 @@ async def guide_reply(bot: Bot, user_id: int, guide_id: str, prompt: str):
     _ = await bot.send_message(
         user_id,
         text=ai_response,
-        parse_mode=ParseMode.MARKDOWN,
+        parse_mode=ParseMode.MARKDOWN_V2,
         reply_markup=keyboards.guide_keyboard,
     )
+
+
+async def expert_init(guide_id: str, exhibit_id: int) -> str:
+    logger.debug(f"expert_graph: expert init for guide_id:{guide_id}")
+    expert_obj = await create_expert_session(guide_id, exhibit_id)
+    expert_id = str(expert_obj.id)
+
+    config: RunnableConfig = {"configurable": {"thread_id": expert_id}}
+    # удаляем thread_id если есть коллизия
+    if isinstance(compiled_graphs.expert_app.checkpointer, BaseCheckpointSaver):
+        _ = await compiled_graphs.expert_app.checkpointer.adelete_thread(expert_id)
+
+    # получаем информацию об экспонате
+    exhibit_name = get_exhibit_name(exhibit_id)
+    exhibit_description = get_description(exhibit_id)
+    exhibit_info = (
+        f"Название {exhibit_name}, Описание: {exhibit_description}"
+        if exhibit_description
+        else ""
+    )
+
+    init_state = InitExpertState({"exp_id": exhibit_id, "exhibit_info": exhibit_info})
+    _ = await compiled_graphs.expert_app.ainvoke(init_state, config=config)
+
+    return expert_id
+
+
+async def expert_invoke(expert_id: str, prompt: str):
+    logger.debug(f"expert_graph: expert_invoke for expert_id:{expert_id}")
+    config: RunnableConfig = {"configurable": {"thread_id": expert_id}}
+
+    logger.debug(f"expert_graph expertid:{expert_id} invoke with '{prompt}'")
+
+    response = await compiled_graphs.expert_app.ainvoke(
+        Command(resume=prompt), config=config
+    )
+    last_ai_message: str = response["messages"][-1].content
+
+    return "Ответ эксперта:\n" + last_ai_message
 
 
 async def expert_reply(bot: Bot, user_id: int, expert_id: str, prompt: str):
@@ -84,7 +159,10 @@ async def expert_reply(bot: Bot, user_id: int, expert_id: str, prompt: str):
     _ = await wait_message.delete()
 
     _ = await bot.send_message(
-        user_id, text=ai_response, reply_markup=keyboards.expert_keyboard
+        user_id,
+        text=ai_response,
+        parse_mode=ParseMode.MARKDOWN_V2,
+        reply_markup=keyboards.expert_keyboard,
     )
 
 
@@ -203,6 +281,44 @@ async def guide_process_inline_markup_reply(
             expert_prompt = "Пользователь впервые у данного экспоната, сделай очень краткое вступление"
 
         _ = await state.update_data(expert_id=expert_id)
+
+        # Подготовим и отправим краткое сообщение с именем, затем альбом (картинка экспоната + карта)
+        try:
+            exhibit_obj = get_exhibit_by_id(exhibit_id)
+            exhibit_name = None
+            if exhibit_obj:
+                exhibit_name = getattr(exhibit_obj, "name", None)
+
+            if exhibit_name:
+                await bot.send_message(
+                    user_id, f"➤ Переход к экспонату: {exhibit_name}"
+                )
+
+            media = []
+            try:
+                img_url = get_image_url(exhibit_id)
+                if img_url:
+                    media.append(InputMediaPhoto(media=img_url))
+            except Exception as e:
+                logger.error(
+                    f"Ошибка при получении URL изображения для экспоната {exhibit_id}: {e}"
+                )
+
+            try:
+                if exhibit_obj:
+                    map_path = generate_map([exhibit_obj])
+                    if map_path and os.path.exists(map_path):
+                        media.append(InputMediaPhoto(media=FSInputFile(map_path)))
+            except Exception as e:
+                logger.error(
+                    f"Ошибка при генерации/подготовке карты для экспоната {exhibit_id}: {e}"
+                )
+
+            if media:
+                # отправляем как альбом (media group)
+                await bot.send_media_group(user_id, media)
+        except Exception as e:
+            logger.error(f"Ошибка при отправке медиа для экспоната {exhibit_id}: {e}")
 
         await expert_reply(
             bot=bot,
